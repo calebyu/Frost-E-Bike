@@ -1,8 +1,10 @@
 //Pin parameters
-#define button_pin  
+#define button_pin 1 
 #define rotary_A_pin  18
 #define rotary_B_pin  19
 #define LED_pin  13
+
+#define CANS 2
 
 #include <FlexCAN.h>
 #include <OLED.h>
@@ -12,7 +14,7 @@
 
 
 // Components
-FlexCAN CANbus(500000);
+FlexCAN CANbus(CAN_BAUD);
 CAN_message_t msg,rxmsg;
 OLED oled(9,11,10); // sends pin numbers for SCL, SDO, and CS, respectively.
 
@@ -71,7 +73,6 @@ void isr_rotary()
           spin++;
      }
   }
-  return 0;
 }
 
 void updateDashboard ()
@@ -91,7 +92,8 @@ void updateMenu ()
 }
 
 void setup() {
-  
+  pinMode(CANS, OUTPUT);
+  digitalWrite(CANS, HIGH);
   // initializes i/o stuff
   Serial.begin(9600);
   oled.begin();
@@ -124,6 +126,7 @@ void setup() {
   attachInterrupt(rotary_B_pin, isr_rotary, CHANGE);
   
   //Setup Dash board
+  delay(100);
   timeout = 0;  
 }
 

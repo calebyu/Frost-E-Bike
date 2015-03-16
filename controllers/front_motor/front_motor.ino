@@ -14,6 +14,7 @@
 #define DIRO 5
 #define FF1 1
 #define FF2 0
+#define LED 13
 
 #define CANS 2
 #define CANTX 3
@@ -33,8 +34,13 @@
 #include <FrostEBike.h>
 #include <math.h>
 //CANBus
-FlexCAN CANbus(50000);
+FlexCAN CANbus(CAN_BAUD);
 CAN_message_t msg,rxmsg;
+
+//loop timing
+long previousTime = 0;
+long interval = 10; //ms  
+long spd_msg_cnt = 10;
 
 //Settings
 int ABS, TRC = 1;
@@ -49,7 +55,7 @@ float acc = 0;
 float prev_spd = 0;
 unsigned long prevtime = 0; 
 float TRC_weight = 0;
-LPF spd;
+LPF spd = NULL;
 
 void isr_spdcnt(){
   cli();
@@ -117,12 +123,25 @@ void setup() {
   for (int i = 0; i<8;i++)
   CANbus.setFilter(filter,i);
   
-  digitalWrite(COAST, HIGH); //GET RID OF THIS CODE
-  spd = LPF();
+  
+  spd = LPF(10);
+  delay(100);
   prevtime = millis();
+  //digitalWrite(COAST, HIGH); //GET RID OF THIS CODE
+  
+  digitalWrite(COAST, LOW); 
 }
 
-void loop() {
+void loop() { unsigned long currentTime = millis();
+    //wrap case
+  if (currentTime < previousTime) previousTime = currentTime;
+   
+  //time limited loop
+  if(currentTime - previousTime > interval) {
+  
+  digitalWrite(LED,HIGH);
+  previousTime = currentTime; 
+  
   Serial.println("I am front motor ");
   int ff1, ff2, curr, curr_r, curr_ref_fb, curr_set;
     
@@ -137,7 +156,7 @@ void loop() {
       }
       case SET_TORQUE:
       {
-        target_current = rxmsg.buf[1];
+        target_current = rxmsg.buf[1] + 150;// 150 is measurement offset
         ABS = rxmsg.buf[2]; 
         TRC = rxmsg.buf[3];
       }
@@ -164,28 +183,42 @@ void loop() {
   Serial.println(acc,DEC);
   Serial.print("Weight: ");
   Serial.println(TRC_weight,DEC);
-  
+  Serial.print("TAR TOR: ");
+  Serial.println(target_current);
   
   //{ Send CANBus - report velocity
 
-  msg.id = CENTRAL_ID;
-  for( int idx=0; idx<8; ++idx ) {
-    msg.buf[idx] = 0;
-  } 
-  msg.len = 4;
-  msg.buf[0] = REPORT_VELOCITY;
-  msg.buf[1] = spd.getValue();
-  msg.buf[2] = ABS_trig;
-  msg.buf[3] = TRC_trig;
-  CANbus.write(msg);
-  
+  if (spd_msg_cnt > 10){
+    spd_msg_cnt = 0;
+    msg.id = CENTRAL_ID;
+    for( int idx=0; idx<8; ++idx ) {
+      msg.buf[idx] = 0;
+    } 
+    msg.len = 4;
+    msg.buf[0] = REPORT_VELOCITY;
+    msg.buf[1] = spd.getValue();
+    msg.buf[2] = ABS_trig;
+    msg.buf[3] = TRC_trig;
+    CANbus.write(msg);
+  }    
+  else{
+    spd_msg_cnt++;
+  }
   //}
   ff1 = digitalRead(FF1);
   ff2 = digitalRead(FF2);
   curr = analogRead(CUR_SEN);
   curr_r = analogRead(CUR_SEN_R);
   curr_ref_fb = analogRead(CUR_REF_FB);
-  curr_set = 35 - TRC_weight; //35 over mechanical losses
+  
+  if (target_current > 167) {
+    digitalWrite(COAST, HIGH); 
+    curr_set += 4*(target_current - curr ); // TRC_weight
+  }  
+  else 
+    digitalWrite(COAST, LOW); 
+    
+  //curr_set = 35 to overcome mechanical losses
   
   /*Serial.print("FF1: ");
   Serial.println(ff1, DEC);
@@ -195,6 +228,8 @@ void loop() {
   Serial.println(curr, DEC);
   Serial.print("CURR_R: ");
   Serial.println(curr_r, DEC);
+  Serial.print("CURR Ref: ");
+  Serial.println(curr_set, DEC);
   Serial.print("CURR Ref FB: ");
   Serial.println(curr_ref_fb, DEC);
   //Serial.print("CURR Set: ");
@@ -206,5 +241,5 @@ void loop() {
   //analogWrite(PWM_OUT,50);
   //analogWrite(COAST,100);
   
-  delay(100);
+  }
 }

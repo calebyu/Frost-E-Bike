@@ -30,7 +30,7 @@
 #include <FrostEBike.h>
 
 //CANBus
-FlexCAN CANbus(50000);
+FlexCAN CANbus(CAN_BAUD);
 CAN_message_t msg,rxmsg;
 
 int ABS, TRC = 1;

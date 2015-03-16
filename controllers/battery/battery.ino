@@ -17,7 +17,7 @@
 #include <FrostEBike.h>
 
 //CANBus
-FlexCAN CANbus(50000);
+FlexCAN CANbus(CAN_BAUD);
 CAN_message_t msg,rxmsg;
 
 int ABS, TRC = 1;
@@ -38,7 +38,7 @@ void setup() {
   digitalWrite(HEAT_ON, LOW);
   digitalWrite(BAT_CONN, LOW);
   digitalWrite(BAT_CONN_REV, LOW);
-  digitalWrite(CANS, HIGH);
+  digitalWrite(CANS, LOW);
   
   pinMode(13, OUTPUT);
   digitalWrite(13, HIGH); //light on, just because

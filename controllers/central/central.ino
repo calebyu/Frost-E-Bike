@@ -10,6 +10,8 @@
 #define HEAD_ON 10
 #define SIG1 11
 #define SIG2 12
+
+#define CANS 2
 #define LED 13
 
 #include <FlexCAN.h>
@@ -19,7 +21,7 @@
 
 
 // Components
-FlexCAN CANbus(500000);
+FlexCAN CANbus(CAN_BAUD);
 CAN_message_t msg,rxmsg;
 
 long previousTime = 0;
@@ -35,7 +37,7 @@ int spdF = 0;
 int spd = 0;
 int bat = 0;
 int bat_low = 0;
-int pedal_in = 0;
+int pedal_curr = 0;
 uint8_t ABS_state = 0; //Front Right Left
 uint8_t TRC_state = 0; //FRL
 int throttle = 0;
@@ -58,6 +60,27 @@ int cnt = 0;
 int spinFlag = 0;
 
 void setup() {
+  pinMode(CANS, OUTPUT);
+  pinMode(THERM1, INPUT);
+  pinMode(THERM2, INPUT);
+  pinMode(RAIL_SEN, INPUT);
+  pinMode(BACKUP_RAIL_SEN, INPUT);
+  pinMode(PWR_SHUNT_ON, INPUT);
+  
+  pinMode(VIS_ON, OUTPUT);
+  pinMode(BRAKE_ON, OUTPUT);
+  pinMode(BRAKE_L, OUTPUT);
+  pinMode(HEAD_ON, OUTPUT);
+  pinMode(SIG1, OUTPUT);
+  pinMode(SIG2, OUTPUT);
+
+  digitalWrite(VIS_ON, LOW);
+  digitalWrite(BRAKE_ON, LOW);
+  digitalWrite(BRAKE_L, LOW);
+  digitalWrite(HEAD_ON, LOW);
+  digitalWrite(SIG1, LOW);
+  digitalWrite(SIG2, LOW);
+  digitalWrite(CANS, LOW);
   
   // initializes i/o stuff
   Serial.begin(9600);
@@ -89,13 +112,13 @@ void loop() { unsigned long currentTime = millis();
    
   //time limited loop
   if(currentTime - previousTime > interval) {
-  
+  Serial.println("I am central");
   digitalWrite(LED,HIGH);
   previousTime = currentTime;   
   
   //Read CANBus
   while (CANbus.read(rxmsg)){
-    //Serial.print("MSG RCV: ");
+    Serial.println("MSG RCV: ");
     switch (rxmsg.buf[0]){
       case GENERIC:{
         Serial.println(String(rxmsg.buf[1]));
@@ -111,8 +134,8 @@ void loop() { unsigned long currentTime = millis();
       }
 	  case DRIVER_CONTROL:{
 	    throttle = rxmsg.buf[1];
-        steering_angle = rxmsg.buf[2];
-        break_sig = rxmsg.buf[3]; 
+            steering_angle = rxmsg.buf[2];
+            break_sig = rxmsg.buf[3]; 
 	    break;
 	  }
       case REPORT_VELOCITY:{
@@ -142,15 +165,18 @@ void loop() { unsigned long currentTime = millis();
         } 
 
       }
-	  case REPORT_PEDAL:{
-		pedal_in = rxmsg.buf[1];
-        break;
-      }
-	  case REPORT_BATTERY:{
-		bat = rxmsg.buf[1];
-		bat_low = rxmsg.buf[2];
-        break;
-      }
+    case REPORT_PEDAL:{
+      Serial.print("PEDAL MSG");
+      Serial.println(pedal_curr);
+      if (rxmsg.buf[1] > 15)
+        pedal_curr = rxmsg.buf[1];
+      break;
+    }
+    case REPORT_BATTERY:{
+      bat = rxmsg.buf[1];
+      bat_low = rxmsg.buf[2];
+      break;
+    }
     } 
   }
   
@@ -168,16 +194,26 @@ void loop() { unsigned long currentTime = millis();
   msg.buf[3] = bat_low;
   msg.buf[4] = (ABS_state)?1:0;
   msg.buf[5] = (TRC_state)?1:0;
-  CANbus.write(msg);
-  //}
+  int err = CANbus.write(msg);
+  Serial.print("ERR: ");
+  Serial.println(err);
+//}
   
   //Speed Processing
   // input throttle/pedal
   // steering angle compensation
   // use torF, torR, torL
+  torF = pedal_curr/3;
+  torR = torF;
+  torL = torF;
   
+  torF = pedal_curr; //REMOVE THIS CODE
+  Serial.begin(9600);
   //{ Update Torque/Current
   //perhaps add checking if target tor has changed first before resending
+    Serial.print("PEDAL: ");
+  Serial.println(pedal_curr);
+
   
   msg.id = FRONT_MOTOR_ID;
   for( int idx=0; idx<8; ++idx ) {

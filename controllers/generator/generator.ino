@@ -14,8 +14,21 @@
 #include <FlexCAN.h>
 #include <FrostEBike.h>
 
+//State
+LPF spd = NULL;
+int curr_in = 0;
+volatile int spd_cnt = 0;
+int prevtime = 0;
+int curr, rail;
+  
+void isr_spdcnt(){
+  cli();
+  spd_cnt++;
+  sei();
+} 
+
 //CANBus
-FlexCAN CANbus(50000);
+FlexCAN CANbus(CAN_BAUD);
 CAN_message_t msg,rxmsg;
 
 void setup(){
@@ -24,12 +37,17 @@ void setup(){
   pinMode(THERM2, INPUT);
   pinMode(RAIL_SEN, INPUT);
   pinMode(CUR_SEN, INPUT);
-  pinMode(HALL1, INPUT);
-  pinMode(HALL2, INPUT);
-  pinMode(HALL3, INPUT);
-  pinMode(GATES, OUTPUT);
+  pinMode(HALL1, INPUT_PULLUP);
+  pinMode(HALL2, INPUT_PULLUP);
+  pinMode(HALL3, INPUT_PULLUP);
+  attachInterrupt(HALL1, isr_spdcnt, RISING);
+  attachInterrupt(HALL2, isr_spdcnt, RISING);
+  attachInterrupt(HALL3, isr_spdcnt, RISING);
   
+  pinMode(GATES, OUTPUT);
+  analogWriteFrequency(GATES, 23437);
   digitalWrite(GATES, LOW);
+  
   digitalWrite(CANS, LOW);
   
   pinMode(13, OUTPUT);
@@ -51,13 +69,33 @@ void setup(){
   for (int i = 0; i<8;i++)
   CANbus.setFilter(filter,i);
   
-    
+  //speed calculation
+  prevtime = millis();
+  spd = LPF(5);
+  delay(100);
 }
 
 void loop(){
   Serial.println("I am generator ");
     
-  //CANBus
+  //{ CANBus Read
+  
+  //{ Process Inputs
+  //{ Speed
+  cli();
+    spd.addPoint( (float) spd_cnt/ (millis() - prevtime ));
+    
+      Serial.print("SPD_CNT: ");
+  Serial.println((String)spd_cnt);
+  
+    spd_cnt = 0;
+  sei();
+  prevtime = millis();
+  
+  Serial.print("SPD: ");
+  Serial.println((String)spd.getValue());
+  //}
+  //}
   if (CANbus.read(rxmsg))
   {
     Serial.print("MSG RCV: ");
@@ -70,29 +108,33 @@ void loop(){
       }
     } 
   }
-    //CANBus
-  msg.len = 3;
-  msg.id = GENERATOR_ID;
+  //}
+  //{ CANBus Write
+  //{ current processing to amps
+  curr = analogRead(CUR_SEN);
+  
+  msg.len = 8;
+  msg.id = CENTRAL_ID;
   for( int idx=0; idx< msg.len; ++idx ) {
       msg.buf[idx] = 0;
   }
-  msg.buf[0] = GENERIC;
-  msg.buf[1] = 'h';
-  msg.buf[2] = 'w';
+  msg.buf[0] = REPORT_PEDAL;
+  msg.buf[1] = curr;
   int err = 0;
   err = CANbus.write(msg);
-  Serial.println(String(err));
-  
-  int curr, rail;
-  curr = analogRead(CUR_SEN);
+  Serial.print("ERR: ");
+  Serial.println(err);
+  //}
+  //Serial.println(String(err)); 
+  //}
+  Serial.print("CURR: ");
+  Serial.println((String)curr);
   rail = analogRead(RAIL_SEN);
   
-  Serial.print("CURR: ");
-  Serial.println(curr, DEC);
-  /*Serial.print("RAIL: ");
-  Serial.println(rail, DEC);*/
+  Serial.print("RAIL: ");
+  Serial.println(rail, DEC);
   
-  analogWrite(GATES, 128);
+  analogWrite(GATES, 200);
   
-  delay(1000);
+  delay(100);
 }
