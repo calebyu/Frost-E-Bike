@@ -190,7 +190,7 @@ void loop() { unsigned long currentTime = millis();
 
   if (spd_msg_cnt > 10){
     spd_msg_cnt = 0;
-    msg.id = CENTRAL_ID;
+    msg.id = FRONT_MOTOR_ID << 4 + CENTRAL_ID;
     for( int idx=0; idx<8; ++idx ) {
       msg.buf[idx] = 0;
     } 

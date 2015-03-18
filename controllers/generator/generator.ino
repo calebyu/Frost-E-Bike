@@ -114,7 +114,7 @@ void loop(){
   curr = analogRead(CUR_SEN);
   
   msg.len = 8;
-  msg.id = CENTRAL_ID;
+  msg.id = msg.id = GENERATOR_ID << 4 + CENTRAL_ID;
   for( int idx=0; idx< msg.len; ++idx ) {
       msg.buf[idx] = 0;
   }

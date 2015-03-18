@@ -89,7 +89,7 @@ void setup() {
   CAN_filter_t mask;
   mask.rtr = 0;
   mask.ext = 0;
-  mask.id = 0xFF;  
+  mask.id = 0x0F;  
   CANbus.begin(mask);
   //Set filters - specs says to set all the filters 
   CAN_filter_t filter;
@@ -194,9 +194,7 @@ void loop() { unsigned long currentTime = millis();
   msg.buf[3] = bat_low;
   msg.buf[4] = (ABS_state)?1:0;
   msg.buf[5] = (TRC_state)?1:0;
-  int err = CANbus.write(msg);
-  Serial.print("ERR: ");
-  Serial.println(err);
+  err = CANbus.write(msg);
 //}
   
   //Speed Processing
