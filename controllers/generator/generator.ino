@@ -37,9 +37,9 @@ void setup(){
   pinMode(THERM2, INPUT);
   pinMode(RAIL_SEN, INPUT);
   pinMode(CUR_SEN, INPUT);
-  pinMode(HALL1, INPUT_PULLUP);
-  pinMode(HALL2, INPUT_PULLUP);
-  pinMode(HALL3, INPUT_PULLUP);
+  pinMode(HALL1, INPUT);
+  pinMode(HALL2, INPUT);
+  pinMode(HALL3, INPUT);
   attachInterrupt(HALL1, isr_spdcnt, RISING);
   attachInterrupt(HALL2, isr_spdcnt, RISING);
   attachInterrupt(HALL3, isr_spdcnt, RISING);
@@ -134,7 +134,9 @@ void loop(){
   Serial.print("RAIL: ");
   Serial.println(rail, DEC);
   
-  analogWrite(GATES, 200);
+  analogWrite(GATES, 255);
+  //delay(100);
+  //digitalWrite(GATES, HIGH);
   
   delay(100);
 }
