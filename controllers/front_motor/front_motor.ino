@@ -177,6 +177,10 @@ void loop() { unsigned long currentTime = millis();
     TRC_weight -= .9;
   if (TRC_weight < 0) TRC_weight = 0;
   if (TRC_weight > 5) TRC_weight = 5;
+  if (!TRC) TRC_weight = 0;
+  if (TRC_weight > 0) TRC_trig = 1;
+  else TRC_trig = 0;
+  
   Serial.print("SPD: ");
   Serial.println(prev_spd,DEC);
   Serial.print("ACC: ");

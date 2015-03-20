@@ -197,7 +197,7 @@ void loop() { unsigned long currentTime = millis();
   err = CANbus.write(msg);
 //}
   
-  //Speed Processing
+  //{Speed Processing
   // input throttle/pedal
   // steering angle compensation
   // use torF, torR, torL
@@ -207,6 +207,8 @@ void loop() { unsigned long currentTime = millis();
   
   torF = pedal_curr; //REMOVE THIS CODE
   Serial.begin(9600);
+  //}
+  
   //{ Update Torque/Current
   //perhaps add checking if target tor has changed first before resending
     Serial.print("PEDAL: ");
@@ -233,6 +235,7 @@ void loop() { unsigned long currentTime = millis();
   CANbus.write(msg);
   //}
  
+  //{Update 
   digitalWrite(LED,LOW);
   }
 }

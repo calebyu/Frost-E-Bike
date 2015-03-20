@@ -4,4 +4,8 @@
 - Implement ABS
 - Finalize menu options
 - Commission information passing
-- Design magnatomiter and torque vectoring 
+- Design magnacoller and torque vectoring 
+- Dashboard inputs 
+  - throttle
+  - light switch
+  - braking

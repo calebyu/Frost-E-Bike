@@ -35,8 +35,8 @@ int exitFlag = 0;
 int spd = 0;
 int bat = 0;
 int timeout = 0;
-int ABS_on = 1;
-int TRC_on = 1;
+int ABS_on = 0;
+int TRC_on = 0;
 int lights_on = 1;
 int pedal_ratio = 100;
 
@@ -210,6 +210,8 @@ void loop() { unsigned long currentTime = millis();
       {
         spd = rxmsg.buf[1];
         bat = rxmsg.buf[2];
+        ABS_on = rxmsg.buf[4];
+        TRC_on = rxmsg.buf[5];
         break; 
       }
     } 
