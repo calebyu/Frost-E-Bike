@@ -1,6 +1,6 @@
 - Add voltage limit for motors in bootstrapping case
 - Calibrate traction control
-  - add flag to turn off traction control
+  - add flag to turn off traction control **
 - Implement ABS
 - Finalize menu options
 - Commission information passing
@@ -9,4 +9,13 @@
   - throttle
   - light switch
   - braking
+  
 - Throttle/pedal control logic 
+  - Cadence
+    - menu option
+    - message passing
+- Safeties
+  - 
+  
+Messages to add
+ - right / left / no signalling 

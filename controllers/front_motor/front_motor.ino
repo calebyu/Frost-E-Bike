@@ -67,6 +67,7 @@ void isr_spdcnt(){
 void setup() {
   //{Pin Mode
   pinMode(COAST, OUTPUT); 
+  digitalWrite(COAST, LOW); //Start by coasting
   pinMode(PWM_OUT, OUTPUT);
   pinMode(VDSTH, OUTPUT);
   pinMode(BRAKE, OUTPUT);
@@ -92,7 +93,7 @@ void setup() {
   pinMode(HALL2, INPUT);
   pinMode(HALL3, INPUT);
   //}
-  digitalWrite(COAST, LOW); //Start by coasting
+  
   digitalWrite(PWM_OUT, HIGH);
   digitalWrite(VDSTH, HIGH); //TODO: Set Realisticaly with analog value
   digitalWrite(BRAKE, HIGH); // BRAKE OFF
@@ -194,7 +195,7 @@ void loop() { unsigned long currentTime = millis();
 
   if (spd_msg_cnt > 10){
     spd_msg_cnt = 0;
-    msg.id = FRONT_MOTOR_ID << 4 + CENTRAL_ID;
+    msg.id = FRONT_MOTOR_ID << 4 | CENTRAL_ID;
     for( int idx=0; idx<8; ++idx ) {
       msg.buf[idx] = 0;
     } 
@@ -203,7 +204,8 @@ void loop() { unsigned long currentTime = millis();
     msg.buf[1] = spd.getValue();
     msg.buf[2] = ABS_trig;
     msg.buf[3] = TRC_trig;
-    CANbus.write(msg);
+    int err = CANbus.write(msg);
+    Serial.println (String(err)); 
   }    
   else{
     spd_msg_cnt++;
@@ -215,7 +217,7 @@ void loop() { unsigned long currentTime = millis();
   curr_r = analogRead(CUR_SEN_R);
   curr_ref_fb = analogRead(CUR_REF_FB);
   
-  if (target_current > 167) {
+  if (false && target_current > 167) {
     digitalWrite(COAST, HIGH); 
     curr_set += 4*(target_current - curr ); // TRC_weight
   }  
