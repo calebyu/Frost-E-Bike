@@ -11,8 +11,6 @@
 #define SIG1 11
 #define SIG2 12
 
-
-
 #define CANS 2
 #define LED 13
 
@@ -169,18 +167,18 @@ void loop() { unsigned long currentTime = millis();
         } 
 
       }
-    case REPORT_PEDAL:{
-      Serial.print("PEDAL MSG");
-      Serial.println(pedal_curr);
-      if (rxmsg.buf[1] > 15)
-        pedal_curr = rxmsg.buf[1];
-      break;
-    }
-    case REPORT_BATTERY:{
-      bat = rxmsg.buf[1];
-      bat_low = rxmsg.buf[2];
-      break;
-    }
+      case REPORT_PEDAL:{
+        Serial.print("PEDAL MSG");
+        Serial.println(pedal_curr);
+        if (rxmsg.buf[1] > 15)
+          pedal_curr = rxmsg.buf[1];
+        break;
+      }
+      case REPORT_BATTERY:{
+        bat = rxmsg.buf[1];
+        bat_low = rxmsg.buf[2];
+        break;
+      }
     } 
   }
   
