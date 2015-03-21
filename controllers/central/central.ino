@@ -45,6 +45,7 @@ uint8_t TRC_state = 0; //FRL
 int throttle = 0;
 int steering_angle = 0; // 0 is forward
 int break_sig = 0; //0: off 1: on
+LPF rail_read = NULL;
 
 //Control Settings
 int ABS_on = 1;
@@ -106,6 +107,7 @@ void setup() {
   digitalWrite(LED,HIGH); 
   
   bat = 100;
+  rail_read = LPF(20);
 }
 
 void loop() { unsigned long currentTime = millis();
@@ -215,6 +217,13 @@ void loop() { unsigned long currentTime = millis();
   
   //{ Update Torque/Current
   //perhaps add checking if target tor has changed first before resending
+  
+  rail_read.addPoint(analogRead(RAIL_SEN));
+  if (rail_read.getValue() < 270){// In no battery condition, wait until bus is 15V before applying motors
+    torF = 0;
+    torR = 0;
+    torL = 0;
+  }
   
   msg.id = FRONT_MOTOR_ID;
   for( int idx=0; idx<8; ++idx ) {

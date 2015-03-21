@@ -39,7 +39,7 @@ CAN_message_t msg,rxmsg;
 
 //loop timing
 long previousTime = 0;
-long interval = 10; //ms  
+long interval_set = 10; //ms  
 long spd_msg_cnt = 10;
 
 //Settings
@@ -61,8 +61,7 @@ void isr_spdcnt(){
   cli();
   spd_cnt++;
   sei();
-} 
-
+}
 
 void setup() {
   //{Pin Mode
@@ -134,11 +133,11 @@ void setup() {
 }
 
 void loop() { unsigned long currentTime = millis();
-    //wrap case
+  //wrap case
   if (currentTime < previousTime) previousTime = currentTime;
    
   //time limited loop
-  if(currentTime - previousTime > interval) {
+  if(currentTime - previousTime > interval_set) {
   
   digitalWrite(LED,HIGH);
   previousTime = currentTime; 
