@@ -43,9 +43,10 @@ long interval_set = 10; //ms
 long spd_msg_cnt = 10;
 
 //Settings
-int ABS, TRC = 1;
+int ABS = 1, TRC = 1;
 
 //State
+int ff1, ff2, curr, curr_r, curr_ref_fb, curr_set = 0, brake_set = 0;
 int ABS_trig, TRC_trig = 0;
 int target_current = 0;
 int loop_cnt = 0;
@@ -55,7 +56,9 @@ float acc = 0;
 float prev_spd = 0;
 unsigned long prevtime = 0; 
 float TRC_weight = 0;
+float ABS_weight = 0;
 LPF spd = NULL;
+int brake = 0;
 
 void isr_spdcnt(){
   cli();
@@ -143,7 +146,6 @@ void loop() { unsigned long currentTime = millis();
   previousTime = currentTime; 
   
   Serial.println("I am front motor ");
-  int ff1, ff2, curr, curr_r, curr_ref_fb, curr_set;
     
   while (CANbus.read(rxmsg)) {
     Serial.print("MSG RCV: ");
@@ -163,7 +165,7 @@ void loop() { unsigned long currentTime = millis();
     } 
   }
   
-  //{ Process speed and traction control
+  //{ Process speed
   cli();
     spd.addPoint( ((float) spd_cnt / TICKS_PER_CYCLE) * CIRCUMFERENCE / (millis() - prevtime )*3600);
     spd_cnt = 0;
@@ -171,6 +173,8 @@ void loop() { unsigned long currentTime = millis();
   acc = (spd.getValue() - prev_spd)/(millis() - prevtime)*1000;
   prev_spd = spd.getValue();
   prevtime = millis();
+  //}
+  //{ Traction control
   if (acc > 2)
     TRC_weight += .3;
   else
@@ -186,6 +190,22 @@ void loop() { unsigned long currentTime = millis();
   if (TRC_weight > 0) TRC_trig = 1;
   else TRC_trig = 0;
   //}
+  
+  //{ ABS control
+  if (acc < -0.5)
+    ABS_weight += 10;
+  else
+    ABS_weight -= 5;
+  if (ABS_weight < 0) ABS_weight = 0;
+  if (ABS_weight > 5) ABS_weight = 5;
+  
+  if (!ABS) ABS_weight = 0;
+  
+  if (ABS_weight > 0) ABS_trig = 1;
+  else ABS_trig = 0;
+  //}
+  
+  // Serial debug output
   Serial.print("SPD: ");
   Serial.println(prev_spd,DEC);
   Serial.print("ACC: ");
@@ -215,17 +235,21 @@ void loop() { unsigned long currentTime = millis();
     spd_msg_cnt++;
   }
   //}
-  ff1 = digitalRead(FF1);
-  ff2 = digitalRead(FF2);
-  curr = analogRead(CUR_SEN);
-  curr_r = analogRead(CUR_SEN_R);
-  curr_ref_fb = analogRead(CUR_REF_FB);
+  ff1 = digitalRead(FF1); // fault flag
+  ff2 = digitalRead(FF2); // fault flag
+  curr = analogRead(CUR_SEN); // actual forward current
+  curr_r = analogRead(CUR_SEN_R); // actual reverse current
+  curr_ref_fb = analogRead(CUR_REF_FB); // sense of current set value
   
   if (false && target_current > 167) {
     digitalWrite(COAST, HIGH); 
     curr_set += 4*(target_current - curr ); // TRC_weight
   }  
-  else 
+  else if ( true || brake ){
+    digitalWrite(COAST, HIGH);
+    brake_set = 200 - ABS_weight;
+  }
+  else
     digitalWrite(COAST, LOW); 
     
   //curr_set = 35 to overcome mechanical losses
@@ -247,9 +271,15 @@ void loop() { unsigned long currentTime = millis();
   
   //digitalWrite(COAST, HIGH); // turn coast off
   digitalWrite(DIR, LOW);
+  
+  if (curr_set < 0) curr_set = 0;
+  if (curr_set > 255) curr_set = 255;
   analogWrite(CUR_REF, curr_set);
   //analogWrite(PWM_OUT,50);
-  //analogWrite(COAST,100);
+  
+  if (brake_set < 0) brake_set = 0;
+  if (brake_set > 255) brake_set = 255;
+  analogWrite(BRAKE, brake_set);
   
   }
 }
