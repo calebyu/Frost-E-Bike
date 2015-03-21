@@ -1,7 +1,7 @@
 - Add voltage limit for motors in bootstrapping case
 - Calibrate traction control
-  - add flag to turn off traction control **
-- Implement ABS
+-Braking
+- Implement ABS <-
 - Finalize menu options
 - Commission information passing
 - Design magnacoller and torque vectoring 
@@ -15,7 +15,7 @@
     - menu option
     - message passing
 - Safeties
-  - 
+  - motor dump if moving (back burner)
   
 Messages to add
  - right / left / no signalling 

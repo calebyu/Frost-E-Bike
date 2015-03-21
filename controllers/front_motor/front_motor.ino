@@ -164,7 +164,7 @@ void loop() { unsigned long currentTime = millis();
     } 
   }
   
-  //Process speed
+  //{ Process speed and traction control
   cli();
     spd.addPoint( ((float) spd_cnt / TICKS_PER_CYCLE) * CIRCUMFERENCE / (millis() - prevtime )*3600);
     spd_cnt = 0;
@@ -176,12 +176,17 @@ void loop() { unsigned long currentTime = millis();
     TRC_weight += .3;
   else
     TRC_weight -= .9;
+  // Limit traction
   if (TRC_weight < 0) TRC_weight = 0;
   if (TRC_weight > 5) TRC_weight = 5;
+  
+  // traction turn off flag
   if (!TRC) TRC_weight = 0;
+  
+  //Report to central if traction control is activated
   if (TRC_weight > 0) TRC_trig = 1;
   else TRC_trig = 0;
-  
+  //}
   Serial.print("SPD: ");
   Serial.println(prev_spd,DEC);
   Serial.print("ACC: ");
