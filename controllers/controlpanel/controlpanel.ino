@@ -92,9 +92,12 @@ void isr_rotary()
 
 void updateDashboard ()
 {
+  String out = " ";
   oled.print(1,"      Dashboard     ");
   oled.print(2,"Bat: "+ String(bat) + "% Spd: "+ String(spd) +"km/h");
-  oled.print(3,"Mode: Pedal TRAC ABS");
+  if (ABS_on) out = "ABS";
+  if (TRC_on) out += " TRAC";
+  oled.print(3,"Mode: Pedal" + out);
   oled.print(4,"Rotary Test: " + String(cnt) + " " +String(prevRotary));
 }
 

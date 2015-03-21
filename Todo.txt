@@ -9,3 +9,4 @@
   - throttle
   - light switch
   - braking
+- Throttle/pedal control logic 
