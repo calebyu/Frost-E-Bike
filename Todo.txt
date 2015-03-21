@@ -1,9 +1,11 @@
-- Add voltage limit for motors in bootstrapping case
+- Test voltage limit for motors in bootstrapping case
 - Calibrate traction control
 - Calibrate ABS 
 - Finalize menu options
 - Commission information passing
-- Design magnacoller and torque vectoring 
+
+- Design magno-collar and torque vectoring 
+
 - Dashboard inputs 
   - throttle
   - light switch
@@ -13,6 +15,7 @@
   - Cadence
     - menu option
     - message passing
+
 - Safeties
   - motor dump if moving (back burner)
   
