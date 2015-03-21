@@ -11,6 +11,8 @@
 #define SIG1 11
 #define SIG2 12
 
+
+
 #define CANS 2
 #define LED 13
 
@@ -25,7 +27,9 @@ FlexCAN CANbus(CAN_BAUD);
 CAN_message_t msg,rxmsg;
 
 long previousTime = 0;
-long interval = 10; //ms  
+long interval = 10; //ms
+
+int signal_timer_cnt = 0;
 
 //Pin parameters
 
@@ -194,7 +198,7 @@ void loop() { unsigned long currentTime = millis();
   msg.buf[3] = bat_low;
   msg.buf[4] = (ABS_state)?1:0;
   msg.buf[5] = (TRC_state)?1:0;
-  err = CANbus.write(msg);
+  //err = CANbus.write(msg);
 //}
   
   //{Speed Processing
@@ -234,6 +238,22 @@ void loop() { unsigned long currentTime = millis();
   msg.buf[1] = torL;
   CANbus.write(msg);
   //}
+  
+  /* Sample signaling code */
+  //signal_timer_cnt = 100; // disable signaling
+  if ( signal_timer_cnt > 50 ){
+    signal_timer_cnt = -50;
+    digitalWrite(SIG1, HIGH);
+    digitalWrite(SIG2, HIGH);
+  }
+  else if ( signal_timer_cnt > 0 ){
+    signal_timer_cnt++;
+    digitalWrite(SIG2, LOW);
+    digitalWrite(SIG1, HIGH);
+  }
+  else {
+    signal_timer_cnt ++;
+  }
  
   //{Update 
   digitalWrite(LED,LOW);
