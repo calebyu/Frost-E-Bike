@@ -31,6 +31,9 @@ int menu_mode = 0; // 0 = browse, 1 = enter
 const int MENU_SIZE = 4;
 int buttonFlag = 0;
 int exitFlag = 0;
+int ABS_trig = 0;
+int TRC_trig = 0;
+
 //settings
 int spd = 0;
 int bat = 0;
@@ -39,6 +42,8 @@ int ABS_on = 0;
 int TRC_on = 0;
 int lights_on = 1;
 int pedal_ratio = 100;
+int drive_mode = 0; // 0 = Cadence, 1 = Throttle, 2 = Torque 
+enum DRIVE_MODE {CADENCE,  THROTTLE, TORQUE};
 
 //for fun variables
 int cnt = 0;
@@ -95,8 +100,8 @@ void updateDashboard ()
   String out = " ";
   oled.print(1,"      Dashboard     ");
   oled.print(2,"Bat: "+ String(bat) + "% Spd: "+ String(spd) +"km/h");
-  if (ABS_on) out = "ABS";
-  if (TRC_on) out += " TRAC";
+  if (ABS_trig) out = "ABS";
+  if (TRC_trig) out += " TRAC";
   oled.print(3,"Mode: Pedal" + out);
   oled.print(4,"Rotary Test: " + String(cnt) + " " +String(prevRotary));
 }
@@ -117,6 +122,7 @@ void updateMenu ()
         oled.print(i,margin + "4: Pedal Ratio: " + String(pedal_ratio));
         break;
       }
+      case 5 :
       case 0 :{
         if (ABS_on)
           oled.print(i,margin + "1: ABS ON          ");
@@ -142,12 +148,11 @@ void updateMenu ()
         oled.print(i,margin + "4: Pedal Ratio: " + String(pedal_ratio) );
         break;
       }
-      case 4 :{
-        if (ABS_on)
-          oled.print(i,margin + "1: ABS ON          ");
-        else
-          oled.print(i,margin + "1: ABS OFF         ");
-        break;
+      case -1:
+      case 4:
+      {
+        oled.print(i,margin + "4: Pedal Ratio: " + String(pedal_ratio) );
+        break:
       }
     }
   }
@@ -204,7 +209,7 @@ void loop() { unsigned long currentTime = millis();
   digitalWrite(LED_pin,HIGH);
   previousTime = currentTime;   
   
-  //CANBus
+  //{ CANBus Read
   if (CANbus.read(rxmsg))
   {
     switch (rxmsg.buf[0])
@@ -213,13 +218,13 @@ void loop() { unsigned long currentTime = millis();
       {
         spd = rxmsg.buf[1];
         bat = rxmsg.buf[2];
-        ABS_on = rxmsg.buf[4];
-        TRC_on = rxmsg.buf[5];
+        ABS_trig = rxmsg.buf[4];
+        TRC_trig = rxmsg.buf[5];
         break; 
       }
     } 
   }
-  
+  //}
   //OLED 
   //Menu
   if (!isDash)
@@ -325,6 +330,22 @@ void loop() { unsigned long currentTime = millis();
      }
   }
   }
+  //{ CANBs Send
+  msg.len = 8;
+  msg.id = CONTROL_PANEL_ID << 4 | CENTRAL_ID;;
+  for( int idx=0; idx<8; ++idx ) {
+      msg.buf[idx] = 0;
+  }
+  msg.buf[0] = DASHBOARD_OUTPUT;
+  msg.buf[1] = ABS_on;
+  msg.buf[2] = TRC_on;
+  msg.buf[3] = pedal_ratio;
+  msg.buf[4] = lights_on;
+  msg.buf[5] = (TRC_state)?1:0;
+  err = CANbus.write(msg);
+  
+  //}
+  
   digitalWrite(LED_pin,LOW);
 }
 

@@ -122,7 +122,8 @@ void loop() { unsigned long currentTime = millis();
   
   //Read CANBus
   while (CANbus.read(rxmsg)){
-    Serial.println("MSG RCV: ");
+    Serial.print("MSG RCV: ");
+    Serial.println(String(rxmsg.buf[0]));
     switch (rxmsg.buf[0]){
       case GENERIC:{
         Serial.println(String(rxmsg.buf[1]));
@@ -143,6 +144,7 @@ void loop() { unsigned long currentTime = millis();
 	    break;
 	  }
       case REPORT_VELOCITY:{
+        Serial.println("REPORT_VELOCITY");
         switch (rxmsg.buf[4]){
           case RIGHT_MOTOR_ID:
           {
@@ -167,10 +169,10 @@ void loop() { unsigned long currentTime = millis();
           }
           break;
         } 
-
+        break;
       }
     case REPORT_PEDAL:{
-      Serial.print("PEDAL MSG");
+      Serial.print("PEDAL MSG: ");
       Serial.println(pedal_curr);
       if (rxmsg.buf[1] > 15)
         pedal_curr = rxmsg.buf[1];
@@ -215,9 +217,6 @@ void loop() { unsigned long currentTime = millis();
   
   //{ Update Torque/Current
   //perhaps add checking if target tor has changed first before resending
-    Serial.print("PEDAL: ");
-  Serial.println(pedal_curr);
-
   
   msg.id = FRONT_MOTOR_ID;
   for( int idx=0; idx<8; ++idx ) {
