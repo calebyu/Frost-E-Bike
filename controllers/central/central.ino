@@ -169,9 +169,8 @@ void loop() { unsigned long currentTime = millis();
         } 
         break;
       }
-<<<<<<< HEAD
       case REPORT_PEDAL:{
-        Serial.print("PEDAL MSG");
+        Serial.print("PEDAL MSG: ");
         Serial.println(pedal_curr);
         if (rxmsg.buf[1] > 15)
           pedal_curr = rxmsg.buf[1];
@@ -182,20 +181,6 @@ void loop() { unsigned long currentTime = millis();
         bat_low = rxmsg.buf[2];
         break;
       }
-=======
-    case REPORT_PEDAL:{
-      Serial.print("PEDAL MSG: ");
-      Serial.println(pedal_curr);
-      if (rxmsg.buf[1] > 15)
-        pedal_curr = rxmsg.buf[1];
-      break;
-    }
-    case REPORT_BATTERY:{
-      bat = rxmsg.buf[1];
-      bat_low = rxmsg.buf[2];
-      break;
-    }
->>>>>>> FETCH_HEAD
     } 
   }
   
