@@ -17,15 +17,17 @@
 
 //State
 LPF spd = NULL;
+LPF rail = NULL;
 int curr_in = 0;
 volatile int spd_cnt = 0;
 int prevtime = 0;
-int curr, rail;
+int curr;
 int mode;
 float torque_set;
 int cadence_set;
 int cadence;
 int cadence_thres;
+int rail_pedal_max;
   
 void isr_spdcnt(){
   cli();
@@ -83,7 +85,7 @@ void setup(){
   attachInterrupt(HALL2, isr_spdcnt, RISING);
   attachInterrupt(HALL3, isr_spdcnt, RISING);
   prevtime = millis();
-  spd = LPF(5);
+  spd = LPF(15);
   delay(100);
   
   // Control variables
@@ -91,7 +93,8 @@ void setup(){
   torque_set = 1;
   cadence_set = 20;
   cadence_thres = 3;
-  
+  rail_pedal_max = 725; //30: 500, 25: 420, 20: 350, 15: 270
+  rail = LPF(5);
 }
 
 void loop(){
@@ -113,7 +116,10 @@ void loop(){
     } 
   }
   
-  // Process
+  // Analog and digital values read
+  rail.addPoint( analogRead(RAIL_SEN) );
+  
+  
   // Detect Speed
   cli();
     spd.addPoint( (float) spd_cnt/ (millis() - prevtime ));
@@ -127,21 +133,23 @@ void loop(){
   
   Serial.print("SPD: ");
   Serial.println((String)spd.getValue());
-
+  
+  // Process
   // Set torque based control mode
   cadence = spd.getValue()/(100+torque_set)*100;
   int ecadence = cadence - cadence_set;
-  float kp = 1;
+  float ki = 1;
   if ( mode == 0 ){ // Constant cadence control
     if ( abs(ecadence) > cadence_thres/2 ){
-      torque_set += ecadence*kp;
+      torque_set += ecadence*ki;
     }
   }
   else {
     torque_set = 1;
   }
-  if (torque_set > 200) torque_set = 200;
-  if (torque_set < 1) torque_set = 1;
+  if ( torque_set > 200 ) torque_set = 200;
+  if ( torque_set < 1 ) torque_set = 1;
+  if ( rail.getValue() >= rail_pedal_max ) torque_set = 0;
   analogWrite(GATES, (int)torque_set);
   Serial.print("Torque: ");
   Serial.println(torque_set,DEC);
@@ -169,10 +177,10 @@ void loop(){
   // Serial output for debug
   Serial.print("CURR: ");
   Serial.println((String)curr);
-  rail = analogRead(RAIL_SEN);
+  
   
   Serial.print("RAIL: ");
-  Serial.println(rail, DEC);
+  Serial.println(rail.getValue(), DEC);
   
   delay(100);
 }
