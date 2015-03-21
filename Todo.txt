@@ -1,7 +1,6 @@
 - Add voltage limit for motors in bootstrapping case
 - Calibrate traction control
--Braking
-- Implement ABS <-
+- Calibrate ABS 
 - Finalize menu options
 - Commission information passing
 - Design magnacoller and torque vectoring 

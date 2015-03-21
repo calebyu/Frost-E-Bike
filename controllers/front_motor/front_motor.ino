@@ -56,6 +56,7 @@ float prev_spd = 0;
 unsigned long prevtime = 0; 
 float TRC_weight = 0;
 LPF spd = NULL;
+int off_cnt = 0;
 
 void isr_spdcnt(){
   cli();
@@ -196,7 +197,6 @@ void loop() { unsigned long currentTime = millis();
   Serial.println(target_current);
   
   //{ Send CANBus - report velocity
-
   if (spd_msg_cnt > 10){
     spd_msg_cnt = 0;
     msg.id = FRONT_MOTOR_ID << 4 | CENTRAL_ID;
@@ -221,13 +221,17 @@ void loop() { unsigned long currentTime = millis();
   curr_r = analogRead(CUR_SEN_R);
   curr_ref_fb = analogRead(CUR_REF_FB);
   
-  if (false && target_current > 167) {
+  if (target_current > 167) {
     digitalWrite(COAST, HIGH); 
-    curr_set += 4*(target_current - curr ); // TRC_weight
+    curr_set += 4*(target_current - curr - TRC_weight); 
   }  
   else 
-    digitalWrite(COAST, LOW); 
+    off_cnt++
     
+  if (off_cnt > 5){  
+    digitalWrite(COAST, LOW); 
+    off_cnt = 0;
+  }
   //curr_set = 35 to overcome mechanical losses
   
   /*Serial.print("FF1: ");

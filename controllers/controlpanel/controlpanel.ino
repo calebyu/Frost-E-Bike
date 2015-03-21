@@ -1,10 +1,33 @@
 //Pin parameters
-#define button_pin 1 
-#define rotary_A_pin  7
-#define rotary_B_pin  8
-#define LED_pin  13
+#define BUTTON 1 
+#define ROTARY_A  7
+#define ROTARY_B  8
+#define SPI_SCK 9
+#define SPI_CS 10
+#define SPI_DOUT 11
+#define SPI_DIN 12
+
+#define BRAKE_1 5
+#define BRAKE_2 6
+
+//#define ONOFF_SWITCH  //not wired up internally
+#define MISC_SWITCH A1
+#define THROTTLE A0
+#define SIG_SWITCH A10
+#define HALL8 A2
+#define HALL7 A3
+#define HALL6 A4
+#define HALL5 A5
+#define HALL4 A6
+#define HALL3 A7
+#define HALL2 A8
+#define HALL1 A9
+
+#define TEENSY_LED  13
 
 #define CANS 2
+
+#define MENU_TIMEOUT 500
 
 #include <FlexCAN.h>
 #include <OLED.h>
@@ -19,7 +42,7 @@ CAN_message_t msg,rxmsg;
 OLED oled(9,11,10); // sends pin numbers for SCL, SDO, and CS, respectively.
 
 long previousTime = 0;
-long interval = 100;  
+long interval_set = 10;  
 
 //Internal state variables
 int isDash = 1; // 0 = menu; 1 = dashboard;
@@ -43,7 +66,8 @@ int TRC_on = 0;
 int lights_on = 1;
 int pedal_ratio = 100;
 int drive_mode = 0; // 0 = Cadence, 1 = Throttle, 2 = Torque 
-enum DRIVE_MODE {CADENCE,  THROTTLE, TORQUE};
+enum DRIVE_MODE {CADENCE_MODE, THROTTLE_MODE, TORQUE_MODE};
+int msg_cnt = 10;
 
 //for fun variables
 int cnt = 0;
@@ -58,8 +82,8 @@ void isr_button() {
 void isr_rotary()
 {
   
-  int rotary_A_in = digitalRead(rotary_A_pin); 
-  int rotary_B_in = digitalRead(rotary_B_pin);
+  int rotary_A_in = digitalRead(ROTARY_A); 
+  int rotary_B_in = digitalRead(ROTARY_B);
   int state;
   
   if (!rotary_A_in && !rotary_B_in)
@@ -103,25 +127,22 @@ void updateDashboard ()
   if (ABS_trig) out = "ABS";
   if (TRC_trig) out += " TRAC";
   oled.print(3,"Mode: Pedal" + out);
-  oled.print(4,"Rotary Test: " + String(cnt) + " " +String(prevRotary));
+  //oled.print(4,"Rotary Test: " + String(cnt) + " " +String(prevRotary));
+  oled.print(4,"Brake Test: "  + String((!digitalRead(BRAKE_1) || !digitalRead(BRAKE_2))));
 }
 
 void updateMenu ()
 {
   String margin = " ";
   if (!menu_mode)
-    oled.print(1,"BROWSE  Menu     "+ String(timeout));
+    oled.print(1,"BROWSE  Menu  "+ String(timeout));
   else
-    oled.print(1,"ENTER   Menu     "+ String(timeout));
+    oled.print(1,"ENTER   Menu  "+ String(timeout));
   
   for (int i = 2; i<5; i++){
     if (i == 3) margin = ">";
     else margin = " ";
     switch (menu_index - 3 + i){
-      case -1 :{
-        oled.print(i,margin + "4: Pedal Ratio: " + String(pedal_ratio));
-        break;
-      }
       case 5 :
       case 0 :{
         if (ABS_on)
@@ -144,15 +165,10 @@ void updateMenu ()
           oled.print(i,margin + "3: Headlights OFF  ");
         break;
       }
+      case -1:
       case 3 :{
         oled.print(i,margin + "4: Pedal Ratio: " + String(pedal_ratio) );
         break;
-      }
-      case -1:
-      case 4:
-      {
-        oled.print(i,margin + "4: Pedal Ratio: " + String(pedal_ratio) );
-        break:
       }
     }
   }
@@ -160,13 +176,15 @@ void updateMenu ()
 }
 
 void setup() {
-  pinMode(CANS, OUTPUT);
-  digitalWrite(CANS, HIGH);
-  // initializes i/o stuff
+  
+  
+  // Setup serial and screen
   Serial.begin(9600);
   oled.begin();
   
   //Setup CANBus
+  pinMode(CANS, OUTPUT);
+  
   CAN_filter_t mask;
   mask.rtr = 0;
   mask.ext = 0;
@@ -181,22 +199,31 @@ void setup() {
     CANbus.setFilter(filter,i);
   
   //LED
-  pinMode(LED_pin,OUTPUT);
-  digitalWrite(LED_pin,HIGH); //OTUPUT??
+  pinMode(TEENSY_LED,OUTPUT);
+  digitalWrite(TEENSY_LED,HIGH);
   
   //Setup button
-  pinMode(button_pin,INPUT_PULLUP);
-  attachInterrupt(button_pin, isr_button, RISING);
+  pinMode(BUTTON,INPUT_PULLUP);
+  attachInterrupt(BUTTON, isr_button, RISING);
   
   //Setup Rotary Encoder 
-  pinMode(rotary_A_pin,INPUT);
-  pinMode(rotary_B_pin,INPUT);
-  attachInterrupt(rotary_A_pin, isr_rotary, CHANGE);
-  attachInterrupt(rotary_B_pin, isr_rotary, CHANGE);
+  pinMode(ROTARY_A,INPUT);
+  pinMode(ROTARY_B,INPUT);
+  attachInterrupt(ROTARY_A, isr_rotary, CHANGE);
+  attachInterrupt(ROTARY_B, isr_rotary, CHANGE);
+  
+  //Setup switches and throttle
+  pinMode(SIG_SWITCH, INPUT);
+  pinMode(MISC_SWITCH, INPUT);
+  pinMode(THROTTLE, INPUT);
+  pinMode(BRAKE_1, INPUT_PULLUP);
+  pinMode(BRAKE_2, INPUT_PULLUP);
+  
+  digitalWrite(CANS, LOW);
   
   //Setup Dash board
   delay(100);
-  timeout = 0;  
+  timeout = 0;    
 }
 
 void loop() { unsigned long currentTime = millis();
@@ -204,148 +231,172 @@ void loop() { unsigned long currentTime = millis();
   if (currentTime < previousTime) previousTime = currentTime;
   
   //time limited loop
-  if(currentTime - previousTime > interval) {
-  
-  digitalWrite(LED_pin,HIGH);
-  previousTime = currentTime;   
-  
-  //{ CANBus Read
-  if (CANbus.read(rxmsg))
-  {
-    switch (rxmsg.buf[0])
+  if(currentTime - previousTime > interval_set) {
+    Serial.println("I am control panel");
+    digitalWrite(TEENSY_LED,HIGH);
+    previousTime = currentTime;   
+    
+    //{ CANBus Read
+    if (CANbus.read(rxmsg))
     {
-      case DASHBOARD_OUTPUT:
+      switch (rxmsg.buf[0])
       {
-        spd = rxmsg.buf[1];
-        bat = rxmsg.buf[2];
-        ABS_trig = rxmsg.buf[4];
-        TRC_trig = rxmsg.buf[5];
-        break; 
+        case DASHBOARD_OUTPUT:
+        {
+          spd = rxmsg.buf[1];
+          bat = rxmsg.buf[2];
+          ABS_trig = rxmsg.buf[4];
+          TRC_trig = rxmsg.buf[5];
+          break; 
+        }
+      } 
+    }
+    //}
+    //OLED 
+    //Menu
+    if (!isDash)
+    {
+      //Check menu stuff
+      updateMenu();
+      //Check exit menu  
+      if (isPress > 100){
+        exitFlag = 1;
+      }
+      if ((exitFlag && buttonFlag == 1)|| timeout < 1)
+      {
+        exitFlag = 0;
+        buttonFlag = 0; 
+        isDash = 1;
+        isPress = 0;
+        cnt = 0;
+        menu_mode = 0;      
+      }    
+      else if ( digitalRead (BUTTON) == 0 ) isPress++;   
+      else if (buttonFlag == 1 ){ 
+        buttonFlag = 0; 
+        timeout = MENU_TIMEOUT;
+        if (menu_mode) menu_mode = 0;
+        else {
+          switch (menu_index){
+            case 0 :{
+              if (ABS_on)
+                ABS_on = 0;
+              else
+                ABS_on = 1;
+              break;
+            }
+            case 1 :{
+              if (TRC_on)
+                TRC_on = 0;
+              else 
+                TRC_on = 1;
+              break;
+            }
+            case 2 :{
+              if (lights_on)
+                lights_on = 0;
+              else 
+                lights_on = 1;
+              break;
+            }
+            case 3 :{
+              menu_mode = 1;
+              break;
+            }
+          }
+        }
+      }
+      else if (spin != 0){
+        timeout = MENU_TIMEOUT;
+        if (!menu_mode) { // browse mode 
+          menu_index += spin;
+          if (menu_index < 0) menu_index += MENU_SIZE;
+          else if (menu_index >= MENU_SIZE) menu_index -= MENU_SIZE;
+        }
+        else if (menu_mode) { // entry mode 
+          switch (menu_index){
+            case 3 :{
+              cli();
+              pedal_ratio += spin;
+              spin = 0;
+              sei();
+              if (pedal_ratio > 255) pedal_ratio =  255;
+              else if (pedal_ratio < 0 ) pedal_ratio =  0;
+              break;
+            }
+          }
+        }
+        cli();
+        spin = 0;
+        sei();
+      }
+      else {
+        timeout--;
+        isPress = 0;
       }
     } 
-  }
-  //}
-  //OLED 
-  //Menu
-  if (!isDash)
-  {
-    //Check menu stuff
-    updateMenu();
-    //Check exit menu  
-    if (isPress > 10){
-      exitFlag = 1;
-    }
-    if ((exitFlag && buttonFlag == 1)|| timeout < 1)
+    //Dashboard
+    else
     {
-      exitFlag = 0;
-      buttonFlag = 0; 
-      isDash = 1;
-      isPress = 0;
-      cnt = 0;
-      menu_mode = 0;      
-    }    
-    else if ( digitalRead (button_pin) == 0 ) isPress++;   
-    else if (buttonFlag == 1 ){ 
-      buttonFlag = 0; 
-      timeout = 50;
-      if (menu_mode) menu_mode = 0;
-      else {
-        switch (menu_index){
-          case 0 :{
-            if (ABS_on)
-              ABS_on = 0;
-            else
-              ABS_on = 1;
-            break;
-          }
-          case 1 :{
-            if (TRC_on)
-              TRC_on = 0;
-            else 
-              TRC_on = 1;
-            break;
-          }
-          case 2 :{
-            if (lights_on)
-              lights_on = 0;
-            else 
-              lights_on = 1;
-            break;
-          }
-          case 3 :{
-            menu_mode = 1;
-            break;
-          }
-        }
-      }
+       cli();
+       cnt += spin;
+       spin = 0;
+       sei();
+       updateDashboard();
+        
+       //Check exit dash  
+       if (buttonFlag){
+          isPress = 1;  
+          buttonFlag = 0;    
+       } 
+       else if (isPress){
+         isDash = 0;
+         isPress = 0;
+         timeout = MENU_TIMEOUT;
+         menu_index = 0;
+       }
     }
-    else if (spin != 0){
-      timeout = 50;
-      if (!menu_mode) { // browse mode 
-        menu_index += spin;
-        if (menu_index < 0) menu_index += MENU_SIZE;
-        else if (menu_index >= MENU_SIZE) menu_index -= MENU_SIZE;
+      if (msg_cnt) msg_cnt--;
+    else{ 
+      msg_cnt = 5;
+      //{ CANBs Send Dashboard Input 
+      msg.len = 8;
+      msg.id = CONTROL_PANEL_ID << 4 | CENTRAL_ID;;
+      for( int idx=0; idx<8; ++idx ) {
+          msg.buf[idx] = 0;
       }
-      else if (menu_mode) { // entry mode 
-        switch (menu_index){
-          case 3 :{
-            cli();
-            pedal_ratio += spin;
-            spin = 0;
-            sei();
-            if (pedal_ratio > 255) pedal_ratio =  255;
-            else if (pedal_ratio < 0 ) pedal_ratio =  0;
-            break;
-          }
-        }
+      msg.buf[0] = DASHBOARD_OUTPUT;
+      msg.buf[1] = ABS_on;
+      msg.buf[2] = TRC_on;
+      msg.buf[3] = pedal_ratio;
+      msg.buf[4] = lights_on;
+      int err = CANbus.write(msg);
+      //Serial.println(String(err));
+      //}
+         
+      //{ Send CANBus - Drive Control
+      msg.len = 8;
+      msg.id = CONTROL_PANEL_ID << 4 | CENTRAL_ID;;
+      for( int idx=0; idx<8; ++idx ) {
+          msg.buf[idx] = 0;
       }
-      cli();
-      spin = 0;
-      sei();
+      msg.buf[0] = DRIVER_CONTROL;
+      msg.buf[1] = analogRead(THROTTLE)/10;
+      //msg.buf[2] = steering_angle;
+      msg.buf[3] = (!digitalRead(BRAKE_1) || !digitalRead(BRAKE_2));
+      if ( analogRead(SIG_SWITCH) > 600)
+        msg.buf[4] = 2;
+      else if ( analogRead(SIG_SWITCH) < 400)
+        msg.buf[4] = 1; 
+      else
+        msg.buf[4] = 0;
+      err = CANbus.write(msg);
+      //Serial.println(String(err));
+      //}
     }
-    else {
-      timeout--;
-      isPress = 0;
-    }
-  } 
-  //Dashboard
-  else
-  {
-     cli();
-     cnt += spin;
-     spin = 0;
-     sei();
-     updateDashboard();
-      
-     //Check exit dash  
-     if (buttonFlag){
-        isPress = 1;  
-        buttonFlag = 0;    
-     } 
-     else if (isPress){
-       isDash = 0;
-       isPress = 0;
-       timeout = 100;
-       menu_index = 0;
-     }
   }
-  }
-  //{ CANBs Send
-  msg.len = 8;
-  msg.id = CONTROL_PANEL_ID << 4 | CENTRAL_ID;;
-  for( int idx=0; idx<8; ++idx ) {
-      msg.buf[idx] = 0;
-  }
-  msg.buf[0] = DASHBOARD_OUTPUT;
-  msg.buf[1] = ABS_on;
-  msg.buf[2] = TRC_on;
-  msg.buf[3] = pedal_ratio;
-  msg.buf[4] = lights_on;
-  msg.buf[5] = (TRC_state)?1:0;
-  err = CANbus.write(msg);
   
-  //}
-  
-  digitalWrite(LED_pin,LOW);
+
+  digitalWrite(TEENSY_LED,LOW);
 }
 

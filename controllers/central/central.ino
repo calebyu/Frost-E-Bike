@@ -25,7 +25,7 @@ FlexCAN CANbus(CAN_BAUD);
 CAN_message_t msg,rxmsg;
 
 long previousTime = 0;
-long interval = 10; //ms
+long interval = 5; //ms
 
 int signal_timer_cnt = 0;
 
@@ -45,6 +45,7 @@ uint8_t TRC_state = 0; //FRL
 int throttle = 0;
 int steering_angle = 0; // 0 is forward
 int break_sig = 0; //0: off 1: on
+int turn_sig= 0; //0: off 1: right 2: left
 LPF rail_read = NULL;
 
 //Control Settings
@@ -61,6 +62,7 @@ int torF = 0;
 //for fun variables
 int cnt = 0;
 int spinFlag = 0;
+int light_state = 0;
 
 void setup() {
   pinMode(CANS, OUTPUT);
@@ -137,11 +139,12 @@ void loop() { unsigned long currentTime = millis();
         motor_drive_mode = rxmsg.buf[5]; //0: Pedal Assist 1: Throttle
         break;
       }
-	  case DRIVER_CONTROL:{
-	    throttle = rxmsg.buf[1];
-            steering_angle = rxmsg.buf[2];
-            break_sig = rxmsg.buf[3]; 
-	    break;
+      case DRIVER_CONTROL:{
+        throttle = rxmsg.buf[1];
+        steering_angle = rxmsg.buf[2];
+        break_sig = rxmsg.buf[3]; 
+        turn_sig = rxmsg.buf[4]; 
+        break;
 	  }
       case REPORT_VELOCITY:{
         Serial.println("REPORT_VELOCITY");
@@ -247,20 +250,31 @@ void loop() { unsigned long currentTime = millis();
   
   /* Sample signaling code */
   //signal_timer_cnt = 100; // disable signaling
-  if ( signal_timer_cnt > 50 ){
-    signal_timer_cnt = -50;
+
+  int sig_pin;
+  if (turn_sig == 1) 
+    sig_pin = SIG1;
+  else if (turn_sig == 2) 
+    sig_pin = SIG2;
+  else {
+    sig_pin = 0;
     digitalWrite(SIG1, HIGH);
     digitalWrite(SIG2, HIGH);
   }
-  else if ( signal_timer_cnt > 0 ){
-    signal_timer_cnt++;
-    digitalWrite(SIG2, LOW);
-    digitalWrite(SIG1, HIGH);
+  if (turn_sig){
+    if ( signal_timer_cnt > 50 ){
+      signal_timer_cnt = -50;
+      digitalWrite(SIG1, HIGH);
+      digitalWrite(sig_pin, HIGH);
+    }
+    else if ( signal_timer_cnt > 0 ){
+      signal_timer_cnt++;
+      digitalWrite(sig_pin, LOW);
+    }
+    else {
+      signal_timer_cnt ++;
+    }
   }
-  else {
-    signal_timer_cnt ++;
-  }
- 
   //{Update 
   digitalWrite(LED,LOW);
   }
