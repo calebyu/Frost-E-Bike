@@ -51,7 +51,7 @@ int isPress = 0;
 int spin = 0;
 int menu_index = 0;
 int menu_mode = 0; // 0 = browse, 1 = enter 
-const int MENU_SIZE = 4;
+const int MENU_SIZE = 5;
 int buttonFlag = 0;
 int exitFlag = 0;
 int ABS_trig = 0;
@@ -65,8 +65,8 @@ int ABS_on = 0;
 int TRC_on = 0;
 int lights_on = 1;
 int pedal_ratio = 100;
+int cadence_set = 0;
 int drive_mode = 0; // 0 = Cadence, 1 = Throttle, 2 = Torque 
-enum DRIVE_MODE {CADENCE_MODE, THROTTLE_MODE, TORQUE_MODE};
 int msg_cnt = 10;
 
 //for fun variables
@@ -128,7 +128,19 @@ void updateDashboard ()
   if (TRC_trig) out += " TRAC";
   oled.print(3,"Mode: Pedal" + out);
   //oled.print(4,"Rotary Test: " + String(cnt) + " " +String(prevRotary));
-  oled.print(4,"Brake Test: "  + String((!digitalRead(BRAKE_1) || !digitalRead(BRAKE_2))));
+  //oled.print(4,"Brake Test: "  + String((!digitalRead(BRAKE_1) || !digitalRead(BRAKE_2))));
+  oled.print(4,"Mag Test: " 
+    + String(1*(analogRead(HALL1) < 1000))
+    + String(2*(analogRead(HALL2) < 1000))
+    + String(3*(analogRead(HALL3) < 1000))
+    + String(4*(analogRead(HALL4) < 1000))
+    + String(5*(analogRead(HALL5) < 1000))
+    + String(6*(analogRead(HALL6) < 1000))
+    + String(7*(analogRead(HALL7) < 1000))
+    + String(8*(analogRead(HALL8) < 1000))
+    
+    ) ;
+  //analogRead(HALL1)
 }
 
 void updateMenu ()
@@ -165,9 +177,28 @@ void updateMenu ()
           oled.print(i,margin + "3: Headlights OFF  ");
         break;
       }
-      case -1:
       case 3 :{
         oled.print(i,margin + "4: Pedal Ratio: " + String(pedal_ratio) );
+        break;
+      }
+      case -1:
+      case 4 :{
+        String out;
+        switch (drive_mode){
+          case CADENCE_MODE :{
+            out = "Cdn";
+            break;
+          }
+          case THROTTLE_MODE :{
+            out = "Thrt";
+            break;
+          }
+          case TORQUE_MODE :{
+            out = "Torq";
+            break;
+          }
+        }
+        oled.print(i,margin + "5: Drv Mode: " + out );
         break;
       }
     }
@@ -259,7 +290,7 @@ void loop() { unsigned long currentTime = millis();
       //Check menu stuff
       updateMenu();
       //Check exit menu  
-      if (isPress > 100){
+      if (isPress > 50){
         exitFlag = 1;
       }
       if ((exitFlag && buttonFlag == 1)|| timeout < 1)
@@ -299,7 +330,8 @@ void loop() { unsigned long currentTime = millis();
                 lights_on = 1;
               break;
             }
-            case 3 :{
+            case 3 :
+            case 4 :{
               menu_mode = 1;
               break;
             }
@@ -322,6 +354,14 @@ void loop() { unsigned long currentTime = millis();
               sei();
               if (pedal_ratio > 255) pedal_ratio =  255;
               else if (pedal_ratio < 0 ) pedal_ratio =  0;
+              break;
+            }
+            case 4: {
+              cli();
+              drive_mode += spin + 6;
+              spin = 0;
+              sei();
+              drive_mode %= 3;
               break;
             }
           }
@@ -356,7 +396,8 @@ void loop() { unsigned long currentTime = millis();
          menu_index = 0;
        }
     }
-      if (msg_cnt) msg_cnt--;
+    //CANBus Sends
+    if (msg_cnt) msg_cnt--;
     else{ 
       msg_cnt = 5;
       //{ CANBs Send Dashboard Input 
@@ -365,18 +406,17 @@ void loop() { unsigned long currentTime = millis();
       for( int idx=0; idx<8; ++idx ) {
           msg.buf[idx] = 0;
       }
-      msg.buf[0] = DASHBOARD_OUTPUT;
+      msg.buf[0] = DASHBOARD_INPUT;
       msg.buf[1] = ABS_on;
       msg.buf[2] = TRC_on;
       msg.buf[3] = pedal_ratio;
       msg.buf[4] = lights_on;
+      msg.buf[5] = drive_mode;
       int err = CANbus.write(msg);
       //Serial.println(String(err));
       //}
          
       //{ Send CANBus - Drive Control
-      msg.len = 8;
-      msg.id = CONTROL_PANEL_ID << 4 | CENTRAL_ID;;
       for( int idx=0; idx<8; ++idx ) {
           msg.buf[idx] = 0;
       }
@@ -391,7 +431,7 @@ void loop() { unsigned long currentTime = millis();
       else
         msg.buf[4] = 0;
       err = CANbus.write(msg);
-      //Serial.println(String(err));
+      Serial.println(String(err));
       //}
     }
   }

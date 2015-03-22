@@ -140,6 +140,7 @@ void loop() { unsigned long currentTime = millis();
         break;
       }
       case DRIVER_CONTROL:{
+        Serial.print("DRIVE CONTROL MSG: ");
         throttle = rxmsg.buf[1];
         steering_angle = rxmsg.buf[2];
         break_sig = rxmsg.buf[3]; 
@@ -248,8 +249,7 @@ void loop() { unsigned long currentTime = millis();
   CANbus.write(msg);
   //}
   
-  /* Sample signaling code */
-  //signal_timer_cnt = 100; // disable signaling
+  //{ Signaling code 
 
   int sig_pin;
   if (turn_sig == 1) 
@@ -275,6 +275,7 @@ void loop() { unsigned long currentTime = millis();
       signal_timer_cnt ++;
     }
   }
+  //}
   //{Update 
   digitalWrite(LED,LOW);
   }
