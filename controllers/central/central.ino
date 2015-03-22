@@ -216,12 +216,20 @@ void loop() { unsigned long currentTime = millis();
     torq_vec = 5
   else if (steering_angle == -1) // right turn
     torq_vec = -5
-    
-  torF = pedal_curr/3;
-  torR = torF - torq_vec;
-  torL = torF + torq_vec;
   
-  torF = pedal_curr; //REMOVE THIS CODE
+  if (motor_drive_mode == CADENCE_MODE || motor_drive_mode == TORQUE_MODE){
+    torF = pedal_curr/3;
+    torR = torF - torq_vec;
+    torL = torF + torq_vec;
+    
+    torF = pedal_curr; //REMOVE THIS CODE
+  }
+  else if (motor_drive_mode == THROTTLE_MODE)
+  {
+    torF = 15 + throttle;
+    torR = torF - torq_vec;
+    torL = torF + torq_vec;  
+  }
   Serial.begin(9600);
   //}
   

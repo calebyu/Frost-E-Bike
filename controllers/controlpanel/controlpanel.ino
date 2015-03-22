@@ -132,6 +132,7 @@ void updateDashboard ()
   oled.print(3,"Mode: Pedal" + out);
   //oled.print(4,"Rotary Test: " + String(cnt) + " " +String(prevRotary));
   //oled.print(4,"Brake Test: "  + String((!digitalRead(BRAKE_1) || !digitalRead(BRAKE_2))));
+  /*
   oled.print(4,"Mag Test: " 
     + String(1*(analogRead(HALL1) < 1000))
     + String(2*(analogRead(HALL2) < 1000))
@@ -142,7 +143,8 @@ void updateDashboard ()
     + String(7*(analogRead(HALL7) < 1000))
     + String(8*(analogRead(HALL8) < 1000))
     
-    ) ;
+    ) ;*/
+  oled.print(4,"Throttle Test: " + String((analogRead(THROTTLE)-167)/8));
   //analogRead(HALL1)
 }
 
@@ -431,7 +433,7 @@ void loop() { unsigned long currentTime = millis();
           msg.buf[idx] = 0;
       }
       msg.buf[0] = DRIVER_CONTROL;
-      msg.buf[1] = analogRead(THROTTLE)/10;
+      msg.buf[1] = (analogRead(THROTTLE)-167)/8 ;
       msg.buf[2] = steering;
       msg.buf[3] = (!digitalRead(BRAKE_1) || !digitalRead(BRAKE_2));
       if ( analogRead(SIG_SWITCH) > 600)

@@ -2,7 +2,8 @@
     - traction control
     - ABS 
     - throttle
-    - torque vectoring (logic) <- 
+    - torque vectoring 
+    
 - Finalize menu options
 
 - Commission information passing
