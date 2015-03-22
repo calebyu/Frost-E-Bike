@@ -211,9 +211,15 @@ void loop() { unsigned long currentTime = millis();
   // input throttle/pedal
   // steering angle compensation
   // use torF, torR, torL
+  int torq_vec = 0;
+  if (steering_angle == 1) // right turn
+    torq_vec = 5
+  else if (steering_angle == -1) // right turn
+    torq_vec = -5
+    
   torF = pedal_curr/3;
-  torR = torF;
-  torL = torF;
+  torR = torF - torq_vec;
+  torL = torF + torq_vec;
   
   torF = pedal_curr; //REMOVE THIS CODE
   Serial.begin(9600);

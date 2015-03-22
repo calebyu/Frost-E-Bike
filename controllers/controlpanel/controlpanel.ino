@@ -402,7 +402,7 @@ void loop() { unsigned long currentTime = millis();
     if (analogRead(HALL3) < 1000)
       steering = 1; //turning left
     else if (analogRead(HALL8) < 1000)
-      steering = -1;/turning left
+      steering = -1;//turning left
     else 
       steering = 0;
     

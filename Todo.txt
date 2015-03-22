@@ -1,14 +1,14 @@
-- Calibrate traction control
-- Calibrate ABS 
+- Calibratation 
+    - traction control
+    - ABS 
+    - throttle
+    - torque vectoring (logic) <- 
 - Finalize menu options
+
 - Commission information passing
 
 - Design magno-collar and torque vectoring 
 
-- Dashboard inputs 
-  - throttle
-  - light switch
-  - braking
   
 - Throttle/pedal control logic 
   - Cadence
