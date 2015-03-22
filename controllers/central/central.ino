@@ -226,7 +226,7 @@ void loop() { unsigned long currentTime = millis();
   }
   else if (motor_drive_mode == THROTTLE_MODE)
   {
-    torF = 15 + throttle;
+    torF = throttle;
     torR = torF - torq_vec;
     torL = torF + torq_vec;  
   }

@@ -168,7 +168,7 @@ void loop(){
       msg.buf[idx] = 0;
   }
   msg.buf[0] = REPORT_PEDAL;
-  msg.buf[1] = curr;
+  msg.buf[1] = curr - 16;
   int err = 0;
   err = CANbus.write(msg);
   Serial.print("ERR: ");

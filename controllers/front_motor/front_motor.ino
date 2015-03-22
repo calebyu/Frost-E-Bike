@@ -159,7 +159,7 @@ void loop() { unsigned long currentTime = millis();
       }
       case SET_TORQUE:
       {
-        target_current = rxmsg.buf[1] + 150;// 150 is measurement offset
+        target_current = rxmsg.buf[1] + 134;// 150 is measurement offset
         ABS = rxmsg.buf[2]; 
         TRC = rxmsg.buf[3];
       }
