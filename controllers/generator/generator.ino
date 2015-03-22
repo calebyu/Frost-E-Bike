@@ -112,7 +112,11 @@ void loop(){
         Serial.println(String(rxmsg.buf[1]));
         break; 
       }
-      // case for setting mode variable
+      case GENERIC:
+      {
+        Serial.println(String(rxmsg.buf[1]));
+        break; 
+      }
     } 
   }
   

@@ -54,6 +54,9 @@ int TRC_on = 1;
 int pedal_wheel_ratio = 100; //FIND A GOOD DEFAULT FOR THIS SETTING
 int front_light_on = 0;
 int motor_drive_mode = 0; //0: Pedal Assist 1: Throttle
+int cadence_set = 20;
+int torque_set = 0;
+
 //Target torques
 int torL = 0;
 int torR = 0;
@@ -137,6 +140,8 @@ void loop() { unsigned long currentTime = millis();
         pedal_wheel_ratio = rxmsg.buf[3]; //FIND A GOOD DEFAULT FOR THIS SETTING
         front_light_on = rxmsg.buf[4];
         motor_drive_mode = rxmsg.buf[5]; //0: Pedal Assist 1: Throttle
+        cadence_set = rxmsg.buf[6];
+        torque_set = rxmsg.buf[7];
         break;
       }
       case DRIVER_CONTROL:{
@@ -230,7 +235,7 @@ void loop() { unsigned long currentTime = millis();
     torR = torF - torq_vec;
     torL = torF + torq_vec;  
   }
-  Serial.begin(9600);
+  Serial.println(String(motor_drive_mode));
   //}
   
   //{ Update Torque/Current
@@ -261,6 +266,18 @@ void loop() { unsigned long currentTime = millis();
   msg.id = LEFT_MOTOR_ID;
   msg.buf[1] = torL;
   CANbus.write(msg);
+  
+  msg.id = GENERATOR_ID;
+  for( int idx=0; idx<8; ++idx ) {
+    msg.buf[idx] = 0;
+  }
+  msg.len = 4;
+  msg.buf[0] = DRIVE_MODE;
+  msg.buf[1] = motor_drive_mode;
+  msg.buf[2] = cadence_set;
+  msg.buf[3] = torque_set;
+  CANbus.write(msg);
+        
   //}
   
   //{ Signaling code 
@@ -290,7 +307,7 @@ void loop() { unsigned long currentTime = millis();
     }
   }
   //}
-  //{Update 
+
   digitalWrite(LED,LOW);
   }
 }

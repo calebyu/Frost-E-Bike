@@ -68,7 +68,8 @@ int ABS_on = 0;
 int TRC_on = 0;
 int lights_on = 1;
 int pedal_ratio = 100;
-int cadence_set = 0;
+int cadence_set = 20;
+int torque_set = 0;
 int drive_mode = 0; // 0 = Cadence, 1 = Throttle, 2 = Torque 
 int msg_cnt = 10;
 
@@ -144,7 +145,7 @@ void updateDashboard ()
     + String(8*(analogRead(HALL8) < 1000))
     
     ) ;*/
-  oled.print(4,"Throttle Test: " + String((analogRead(THROTTLE)-167)/8));
+  oled.print(4,"Throttle Test: " + String((analogRead(THROTTLE)-167)/7));
   //analogRead(HALL1)
 }
 
@@ -160,7 +161,11 @@ void updateMenu ()
     if (i == 3) margin = ">";
     else margin = " ";
     switch (menu_index - 3 + i){
-      case 5 :
+      case -1 :
+      case MENU_SIZE : {
+        oled.print(i,margin + "          ");
+        break;
+      }
       case 0 :{
         if (ABS_on)
           oled.print(i,margin + "1: ABS ON          ");
@@ -186,7 +191,6 @@ void updateMenu ()
         oled.print(i,margin + "4: Pedal Ratio: " + String(pedal_ratio) );
         break;
       }
-      case -1:
       case 4 :{
         String out;
         switch (drive_mode){
@@ -206,6 +210,7 @@ void updateMenu ()
         oled.print(i,margin + "5: Drv Mode: " + out );
         break;
       }
+
     }
   }
   
@@ -347,8 +352,8 @@ void loop() { unsigned long currentTime = millis();
         timeout = MENU_TIMEOUT;
         if (!menu_mode) { // browse mode 
           menu_index += spin;
-          if (menu_index < 0) menu_index += MENU_SIZE;
-          else if (menu_index >= MENU_SIZE) menu_index -= MENU_SIZE;
+          if (menu_index < 0) menu_index = 0;
+          else if (menu_index >= MENU_SIZE ) menu_index = MENU_SIZE-1;
         }
         else if (menu_mode) { // entry mode 
           switch (menu_index){
@@ -424,6 +429,8 @@ void loop() { unsigned long currentTime = millis();
       msg.buf[3] = pedal_ratio;
       msg.buf[4] = lights_on;
       msg.buf[5] = drive_mode;
+      msg.buf[6] = cadence_set;
+      msg.buf[7] = torque_set;
       int err = CANbus.write(msg);
       //Serial.println(String(err));
       //}
@@ -433,7 +440,7 @@ void loop() { unsigned long currentTime = millis();
           msg.buf[idx] = 0;
       }
       msg.buf[0] = DRIVER_CONTROL;
-      msg.buf[1] = (analogRead(THROTTLE)-167)/8 ;
+      msg.buf[1] = (analogRead(THROTTLE)-167)/7 ;
       msg.buf[2] = steering;
       msg.buf[3] = (!digitalRead(BRAKE_1) || !digitalRead(BRAKE_2));
       if ( analogRead(SIG_SWITCH) > 600)
