@@ -54,8 +54,11 @@ int menu_mode = 0; // 0 = browse, 1 = enter
 const int MENU_SIZE = 5;
 int buttonFlag = 0;
 int exitFlag = 0;
+
+//Bike state variables 
 int ABS_trig = 0;
 int TRC_trig = 0;
+int steering = 0;
 
 //settings
 int spd = 0;
@@ -376,8 +379,7 @@ void loop() { unsigned long currentTime = millis();
       }
     } 
     //Dashboard
-    else
-    {
+    else {
        cli();
        cnt += spin;
        spin = 0;
@@ -396,6 +398,14 @@ void loop() { unsigned long currentTime = millis();
          menu_index = 0;
        }
     }
+    
+    if (analogRead(HALL3) < 1000)
+      steering = 1; //turning left
+    else if (analogRead(HALL8) < 1000)
+      steering = -1;/turning left
+    else 
+      steering = 0;
+    
     //CANBus Sends
     if (msg_cnt) msg_cnt--;
     else{ 
@@ -422,7 +432,7 @@ void loop() { unsigned long currentTime = millis();
       }
       msg.buf[0] = DRIVER_CONTROL;
       msg.buf[1] = analogRead(THROTTLE)/10;
-      //msg.buf[2] = steering_angle;
+      msg.buf[2] = steering;
       msg.buf[3] = (!digitalRead(BRAKE_1) || !digitalRead(BRAKE_2));
       if ( analogRead(SIG_SWITCH) > 600)
         msg.buf[4] = 2;
