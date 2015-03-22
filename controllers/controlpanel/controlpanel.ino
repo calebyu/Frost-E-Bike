@@ -182,9 +182,9 @@ void updateMenu ()
       }
       case 2 :{
         if (lights_on)
-          oled.print(i,margin + "3: Headlights ON   ");
+          oled.print(i,margin + "3: Rear lights ON  ");
         else 
-          oled.print(i,margin + "3: Headlights OFF  ");
+          oled.print(i,margin + "3: Rear lights OFF ");
         break;
       }
       case 3 :{

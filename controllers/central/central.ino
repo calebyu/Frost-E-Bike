@@ -52,7 +52,7 @@ LPF rail_read = NULL;
 int ABS_on = 1;
 int TRC_on = 1;
 int pedal_wheel_ratio = 100; //FIND A GOOD DEFAULT FOR THIS SETTING
-int front_light_on = 0;
+int light_on = 0;
 int motor_drive_mode = 0; //0: Pedal Assist 1: Throttle
 int cadence_set = 20;
 int torque_set = 0;
@@ -138,14 +138,14 @@ void loop() { unsigned long currentTime = millis();
         ABS_on = rxmsg.buf[1];
         TRC_on = rxmsg.buf[2];
         pedal_wheel_ratio = rxmsg.buf[3]; //FIND A GOOD DEFAULT FOR THIS SETTING
-        front_light_on = rxmsg.buf[4];
+        light_on = rxmsg.buf[4];
         motor_drive_mode = rxmsg.buf[5]; //0: Pedal Assist 1: Throttle
         cadence_set = rxmsg.buf[6];
         torque_set = rxmsg.buf[7];
         break;
       }
       case DRIVER_CONTROL:{
-        Serial.print("DRIVE CONTROL MSG: ");
+        Serial.println("DRIVE CONTROL MSG: ");
         throttle = rxmsg.buf[1];
         steering_angle = rxmsg.buf[2];
         break_sig = rxmsg.buf[3]; 
@@ -218,9 +218,9 @@ void loop() { unsigned long currentTime = millis();
   // use torF, torR, torL
   int torq_vec = 0;
   if (steering_angle == 1) // right turn
-    torq_vec = 5
+    torq_vec = 5;
   else if (steering_angle == -1) // right turn
-    torq_vec = -5
+    torq_vec = -5;
   
   if (motor_drive_mode == CADENCE_MODE || motor_drive_mode == TORQUE_MODE){
     torF = pedal_curr/3;
@@ -235,7 +235,7 @@ void loop() { unsigned long currentTime = millis();
     torR = torF - torq_vec;
     torL = torF + torq_vec;  
   }
-  Serial.println(String(motor_drive_mode));
+
   //}
   
   //{ Update Torque/Current
@@ -289,13 +289,19 @@ void loop() { unsigned long currentTime = millis();
     sig_pin = SIG2;
   else {
     sig_pin = 0;
+  }
+  if (light_on){
     digitalWrite(SIG1, HIGH);
     digitalWrite(SIG2, HIGH);
   }
+  else {
+    digitalWrite(SIG1, LOW);
+    digitalWrite(SIG2, LOW);
+  }
+  
   if (turn_sig){
     if ( signal_timer_cnt > 50 ){
       signal_timer_cnt = -50;
-      digitalWrite(SIG1, HIGH);
       digitalWrite(sig_pin, HIGH);
     }
     else if ( signal_timer_cnt > 0 ){
