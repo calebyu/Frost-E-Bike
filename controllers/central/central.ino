@@ -44,7 +44,7 @@ uint8_t ABS_state = 0; //Front Right Left
 uint8_t TRC_state = 0; //FRL
 int throttle = 0;
 int steering_angle = 0; // 0 is forward
-int break_sig = 0; //0: off 1: on
+int brake_sig = 0; //0: off 1: on
 int turn_sig= 0; //0: off 1: right 2: left
 LPF rail_read = NULL;
 
@@ -148,7 +148,7 @@ void loop() { unsigned long currentTime = millis();
         Serial.println("DRIVE CONTROL MSG: ");
         throttle = rxmsg.buf[1];
         steering_angle = rxmsg.buf[2];
-        break_sig = rxmsg.buf[3]; 
+        brake_sig = rxmsg.buf[3]; 
         turn_sig = rxmsg.buf[4]; 
         break;
 	  }
@@ -247,16 +247,20 @@ void loop() { unsigned long currentTime = millis();
     torR = 0;
     torL = 0;
   }
-  
+  Serial.print("Brake Sig: ");
+  Serial.println(brake_sig, DEC);
+  Serial.print("Target Torque: ");
+  Serial.println(torF, DEC);
   msg.id = FRONT_MOTOR_ID;
   for( int idx=0; idx<8; ++idx ) {
     msg.buf[idx] = 0;
   }
-  msg.len = 4;
+  msg.len = 5;
   msg.buf[0] = SET_TORQUE;
   msg.buf[1] = torF;
   msg.buf[2] = ABS_on;
   msg.buf[3] = TRC_on;
+  msg.buf[4] = brake_sig;
   CANbus.write(msg);
   
   msg.id = RIGHT_MOTOR_ID;
@@ -267,6 +271,7 @@ void loop() { unsigned long currentTime = millis();
   msg.buf[1] = torL;
   CANbus.write(msg);
   
+  // Drive mode msg to generator
   msg.id = GENERATOR_ID;
   for( int idx=0; idx<8; ++idx ) {
     msg.buf[idx] = 0;

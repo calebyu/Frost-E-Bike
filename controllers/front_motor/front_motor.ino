@@ -149,7 +149,6 @@ void loop() { unsigned long currentTime = millis();
   Serial.println("I am front motor ");
     
   while (CANbus.read(rxmsg)) {
-    Serial.print("MSG RCV: ");
     switch (rxmsg.buf[0])
     {
       case GENERIC:
@@ -159,9 +158,10 @@ void loop() { unsigned long currentTime = millis();
       }
       case SET_TORQUE:
       {
-        target_current = rxmsg.buf[1] + 134;// 150 is measurement offset
+        target_current = rxmsg.buf[1] + 161;// 150 is measurement offset
         ABS = rxmsg.buf[2]; 
         TRC = rxmsg.buf[3];
+        brake = rxmsg.buf[4];
       }
     } 
   }
@@ -185,7 +185,7 @@ void loop() { unsigned long currentTime = millis();
   if (TRC_weight > 5) TRC_weight = 5;
   
   // traction turn off flag
-  if (!TRC) TRC_weight = 0;
+  if (!TRC || true) TRC_weight = 0;
   
   //Report to central if traction control is activated
   if (TRC_weight > 0) TRC_trig = 1;
@@ -200,7 +200,7 @@ void loop() { unsigned long currentTime = millis();
   if (ABS_weight < 0) ABS_weight = 0;
   if (ABS_weight > 5) ABS_weight = 5;
   
-  if (!ABS) ABS_weight = 0;
+  if (!ABS || true) ABS_weight = 0;
   
   if (ABS_weight > 0) ABS_trig = 1;
   else ABS_trig = 0;
@@ -241,19 +241,23 @@ void loop() { unsigned long currentTime = millis();
   curr_r = analogRead(CUR_SEN_R); // actual reverse current
   curr_ref_fb = analogRead(CUR_REF_FB); // sense of current set value
   
-  if (target_current > 167) {
-    digitalWrite(COAST, HIGH); 
-    curr_set += 4*(target_current - curr - TRC_weight); 
-  }  
-  else if ( brake ){
+  if ( brake ){
     digitalWrite(COAST, HIGH);
-    brake_set = 200 - ABS_weight;
+    brake_set = 50 + ABS_weight;
   }
-  else
-    off_cnt++
+  else if (target_current > 161) {
+    digitalWrite(COAST, HIGH); 
+    curr_set += .1*(target_current - curr - TRC_weight); 
+    brake_set = 256;
+  }  
+  else{
+    off_cnt++;
+    brake_set = 256;
+  }
     
   if (off_cnt > 5){  
     digitalWrite(COAST, LOW); 
+    curr_set = 0;
     off_cnt = 0;
   }
   //curr_set = 35 to overcome mechanical losses
@@ -266,10 +270,15 @@ void loop() { unsigned long currentTime = millis();
   Serial.println(curr, DEC);
   Serial.print("CURR_R: ");
   Serial.println(curr_r, DEC);
-  Serial.print("CURR Ref: ");
+  Serial.print("CURR Set: ");
   Serial.println(curr_set, DEC);
   Serial.print("CURR Ref FB: ");
   Serial.println(curr_ref_fb, DEC);
+  Serial.print("Brake: ");
+  Serial.println(brake_set, DEC);  
+  Serial.print("Brake Sig: ");
+  Serial.println(brake, DEC);  
+  
   //Serial.print("CURR Set: ");
   //Serial.println(curr_set/256.*3.3, DEC);
   
@@ -277,7 +286,7 @@ void loop() { unsigned long currentTime = millis();
   digitalWrite(DIR, LOW);
   
   if (curr_set < 0) curr_set = 0;
-  if (curr_set > 255) curr_set = 255;
+  if (curr_set > 100) curr_set = 100;
   analogWrite(CUR_REF, curr_set);
   //analogWrite(PWM_OUT,50);
   

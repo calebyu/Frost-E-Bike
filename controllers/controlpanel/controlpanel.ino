@@ -69,8 +69,8 @@ int TRC_on = 0;
 int lights_on = 1;
 int pedal_ratio = 100;
 int cadence_set = 20;
-int torque_set = 0;
-int drive_mode = 0; // 0 = Cadence, 1 = Throttle, 2 = Torque 
+int torque_set = 150;
+int drive_mode = 1; // 0 = Cadence, 1 = Throttle, 2 = Torque 
 int msg_cnt = 10;
 
 //for fun variables

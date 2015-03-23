@@ -25,6 +25,7 @@ int curr;
 int mode;
 float torque_set;
 int cadence_set;
+int drive_mode;
 int cadence;
 int cadence_thres;
 int rail_pedal_max;
@@ -112,10 +113,12 @@ void loop(){
         Serial.println(String(rxmsg.buf[1]));
         break; 
       }
-      case GENERIC:
+      case DRIVE_MODE:
       {
-        Serial.println(String(rxmsg.buf[1]));
-        break; 
+          drive_mode = rxmsg.buf[1] ;
+          cadence_set = rxmsg.buf[2];
+          torque_set = rxmsg.buf[3];
+        break;  
       }
     } 
   }
@@ -140,20 +143,23 @@ void loop(){
   
   // Process
   // Set torque based control mode
-  cadence = spd.getValue()/(100+torque_set)*100;
-  int ecadence = cadence - cadence_set;
-  float ki = 1;
-  if ( mode == 0 ){ // Constant cadence control
-    if ( abs(ecadence) > cadence_thres/2 ){
-      torque_set += ecadence*ki;
+  int ecadence;
+  if (drive_mode == CADENCE_MODE){
+    cadence = spd.getValue()/(100+torque_set)*100;
+    ecadence = cadence - cadence_set;
+    float ki = 1;
+    if ( mode == 0 ){ // Constant cadence control
+      if ( abs(ecadence) > cadence_thres/2 ){
+        torque_set += ecadence*ki;
+      }
     }
+    else {
+      torque_set = 1;
+    }
+    if ( torque_set > 200 ) torque_set = 200;
+    if ( torque_set < 1 ) torque_set = 1;
+    if ( rail.getValue() >= rail_pedal_max ) torque_set = 0;
   }
-  else {
-    torque_set = 1;
-  }
-  if ( torque_set > 200 ) torque_set = 200;
-  if ( torque_set < 1 ) torque_set = 1;
-  if ( rail.getValue() >= rail_pedal_max ) torque_set = 0;
   analogWrite(GATES, (int)torque_set);
   Serial.print("Torque: ");
   Serial.println(torque_set,DEC);
