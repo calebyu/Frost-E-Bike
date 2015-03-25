@@ -7,9 +7,6 @@
 - Finalize menu options
 
 - Commission information passing
-
-- Design magno-collar and torque vectoring 
-
   
 - Throttle/pedal control logic 
   - Cadence
