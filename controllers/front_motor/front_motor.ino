@@ -27,9 +27,10 @@
 #define HALL2 8
 #define HALL1 7
 
-#define TICKS_PER_CYCLE 69
+#define TICKS_PER_CYCLE 138
 #define CIRCUMFERENCE 2.07
 
+#define CURR_OFFSET 100
 #include <FlexCAN.h>
 #include <FrostEBike.h>
 #include <math.h>
@@ -60,6 +61,10 @@ float ABS_weight = 0;
 LPF spd = NULL;
 int off_cnt = 0;
 int brake = 0;
+
+
+//FOr test vars 
+int cnt = 0;
 
 void isr_spdcnt(){
   cli();
@@ -128,11 +133,10 @@ void setup() {
   CANbus.setFilter(filter,i);
   
   
-  spd = LPF(10);
-  delay(100);
+  spd = LPF(20);
+  delay(1000);
   prevtime = millis();
   //digitalWrite(COAST, HIGH); //GET RID OF THIS CODE
-  
   digitalWrite(COAST, LOW); 
 }
 
@@ -143,11 +147,16 @@ void loop() { unsigned long currentTime = millis();
   //time limited loop
   if(currentTime - previousTime > interval_set) {
   
+  cnt++;
+  
+  if (cnt > 700) target_current = 0;
+  else if (cnt > 200) target_current = 130;
   digitalWrite(LED,HIGH);
   previousTime = currentTime; 
   
   Serial.println("I am front motor ");
-    
+  
+  /*
   while (CANbus.read(rxmsg)) {
     switch (rxmsg.buf[0])
     {
@@ -158,17 +167,17 @@ void loop() { unsigned long currentTime = millis();
       }
       case SET_TORQUE:
       {
-        target_current = rxmsg.buf[1] + 161;// 150 is measurement offset
+        target_current = rxmsg.buf[1] + CURR_OFFSET;// 161 is measurement offset
         ABS = rxmsg.buf[2]; 
         TRC = rxmsg.buf[3];
         brake = rxmsg.buf[4];
       }
     } 
   }
-  
+  */
   //{ Process speed
   cli();
-    spd.addPoint( ((float) spd_cnt / TICKS_PER_CYCLE) * CIRCUMFERENCE / (millis() - prevtime )*3600);
+    spd.addPoint( ((float) spd_cnt / TICKS_PER_CYCLE) * CIRCUMFERENCE / (millis() - prevtime )*3600 );
     spd_cnt = 0;
   sei();
   acc = (spd.getValue() - prev_spd)/(millis() - prevtime)*1000;
@@ -177,15 +186,15 @@ void loop() { unsigned long currentTime = millis();
   //}
   //{ Traction control
   if (acc > 2)
-    TRC_weight += .3;
+    TRC_weight += 15;
   else
-    TRC_weight -= .9;
+    TRC_weight -= 30;
   // Limit traction
   if (TRC_weight < 0) TRC_weight = 0;
-  if (TRC_weight > 5) TRC_weight = 5;
+  if (TRC_weight > CURR_OFFSET) TRC_weight = CURR_OFFSET;
   
   // traction turn off flag
-  if (!TRC || true) TRC_weight = 0;
+  if (!TRC) TRC_weight = 0;
   
   //Report to central if traction control is activated
   if (TRC_weight > 0) TRC_trig = 1;
@@ -245,9 +254,10 @@ void loop() { unsigned long currentTime = millis();
     digitalWrite(COAST, HIGH);
     brake_set = 50 + ABS_weight;
   }
-  else if (target_current > 161) {
+  else if (target_current > CURR_OFFSET) {
     digitalWrite(COAST, HIGH); 
-    curr_set += .1*(target_current - curr - TRC_weight); 
+    curr_set += .25*(target_current - curr - TRC_weight); 
+    if (curr_set < 25) curr_set = 25;
     brake_set = 256;
   }  
   else{
