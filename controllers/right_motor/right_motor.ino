@@ -30,8 +30,7 @@
 #define TICKS_PER_CYCLE 138
 #define CIRCUMFERENCE 2.07
 
-#define CURR_OFFSET 134
-
+#define CURR_OFFSET 142
 #include <FlexCAN.h>
 #include <FrostEBike.h>
 #include <math.h>
@@ -129,7 +128,7 @@ void setup() {
   CAN_filter_t filter;
   filter.rtr = 0;
   filter.ext = 0;
-  filter.id = LEFT_MOTOR_ID;
+  filter.id = RIGHT_MOTOR_ID;
   for (int i = 0; i<8;i++)
   CANbus.setFilter(filter,i);
   
@@ -150,13 +149,13 @@ void loop() { unsigned long currentTime = millis();
   /*
   cnt++;
   
-  if (cnt > 500) target_current = 0;
-  else if (cnt > 200) target_current = 75;
+  if (cnt > 700) target_current = 0;
+  else if (cnt > 200) target_current = 130;
   */
   digitalWrite(LED,HIGH);
   previousTime = currentTime; 
   
-  Serial.println("I am left motor ");
+  Serial.println("I am right motor ");
   
   
   while (CANbus.read(rxmsg)) {
@@ -169,7 +168,7 @@ void loop() { unsigned long currentTime = millis();
       }
       case SET_TORQUE:
       {
-        target_current = rxmsg.buf[1] + CURR_OFFSET;
+        target_current = rxmsg.buf[1] + CURR_OFFSET;// 161 is measurement offset
         ABS = rxmsg.buf[2]; 
         TRC = rxmsg.buf[3];
         brake = rxmsg.buf[4];
@@ -230,7 +229,7 @@ void loop() { unsigned long currentTime = millis();
   //{ Send CANBus - report velocity
   if (spd_msg_cnt > 10){
     spd_msg_cnt = 0;
-    msg.id = LEFT_MOTOR_ID << 4 | CENTRAL_ID;
+    msg.id = RIGHT_MOTOR_ID << 4 | CENTRAL_ID;
     for( int idx=0; idx<8; ++idx ) {
       msg.buf[idx] = 0;
     } 

@@ -146,17 +146,18 @@ void loop() { unsigned long currentTime = millis();
    
   //time limited loop
   if(currentTime - previousTime > interval_set) {
-  
+  /*
   cnt++;
   
   if (cnt > 700) target_current = 0;
   else if (cnt > 200) target_current = 130;
+  */
   digitalWrite(LED,HIGH);
   previousTime = currentTime; 
   
   Serial.println("I am front motor ");
   
-  /*
+  
   while (CANbus.read(rxmsg)) {
     switch (rxmsg.buf[0])
     {
@@ -174,7 +175,7 @@ void loop() { unsigned long currentTime = millis();
       }
     } 
   }
-  */
+  
   //{ Process speed
   cli();
     spd.addPoint( ((float) spd_cnt / TICKS_PER_CYCLE) * CIRCUMFERENCE / (millis() - prevtime )*3600 );
@@ -254,7 +255,7 @@ void loop() { unsigned long currentTime = millis();
     digitalWrite(COAST, HIGH);
     brake_set = 50 + ABS_weight;
   }
-  else if (target_current > CURR_OFFSET) {
+  else if (target_current > CURR_OFFSET + 1) {
     digitalWrite(COAST, HIGH); 
     curr_set += .25*(target_current - curr - TRC_weight); 
     if (curr_set < 25) curr_set = 25;
