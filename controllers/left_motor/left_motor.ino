@@ -299,6 +299,7 @@ void loop() { unsigned long currentTime = millis();
   
   if (curr_set < 0) curr_set = 0;
   if (curr_set > 100) curr_set = 100;
+  //digitalWrite(COAST, LOW); 
   analogWrite(CUR_REF, curr_set);
   //analogWrite(PWM_OUT,50);
   

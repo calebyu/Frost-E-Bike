@@ -6,6 +6,7 @@
 #define SPI_CS 10
 #define SPI_DOUT 11
 #define SPI_DIN 12
+#define HEAT_PAD 0
 
 #define BRAKE_1 5
 #define BRAKE_2 6
@@ -51,9 +52,10 @@ int isPress = 0;
 int spin = 0;
 int menu_index = 0;
 int menu_mode = 0; // 0 = browse, 1 = enter 
-const int MENU_SIZE = 5;
+const int MENU_SIZE = 6;
 int buttonFlag = 0;
 int exitFlag = 0;
+int throttle;
 
 //Bike state variables 
 int ABS_trig = 0;
@@ -67,6 +69,7 @@ int timeout = 0;
 int ABS_on = 0;
 int TRC_on = 0;
 int lights_on = 1;
+int heatpad_on = 0;
 int pedal_ratio = 100;
 int cadence_set = 20;
 int torque_set = 150;
@@ -210,7 +213,13 @@ void updateMenu ()
         oled.print(i,margin + "5: Drv Mode: " + out );
         break;
       }
-
+      case 5:{
+        if (heatpad_on)
+          oled.print(i,margin + "3: Heatpad ON  ");
+        else 
+          oled.print(i,margin + "3: Heatpad OFF ");
+        break;
+      }
     }
   }
   
@@ -277,6 +286,9 @@ void loop() { unsigned long currentTime = millis();
     digitalWrite(TEENSY_LED,HIGH);
     previousTime = currentTime;   
     
+    //Read Input
+    throttle =  (analogRead(THROTTLE)-167)/7;
+    
     //{ CANBus Read
     if (CANbus.read(rxmsg))
     {
@@ -338,6 +350,13 @@ void loop() { unsigned long currentTime = millis();
                 lights_on = 0;
               else 
                 lights_on = 1;
+              break;
+            }
+            case 5 :{
+              if (heatpad_on)
+                heatpad_on = 0;
+              else 
+                heatpad_on = 1;
               break;
             }
             case 3 :
@@ -406,13 +425,17 @@ void loop() { unsigned long currentTime = millis();
        }
     }
     
+    // Process Steeing Angle
     if (analogRead(HALL3) < 1000)
       steering = 1; //turning left
     else if (analogRead(HALL8) < 1000)
-      steering = -1;//turning left
+      steering = -1;//turning right
     else 
-      steering = 0;
+      steering = 0;    
     
+    //Process Heating pad
+    if (heatpad_on) digitalWrite(HEAT_PAD, HIGH);
+    else digitalWrite(HEAT_PAD, LOW);
     //CANBus Sends
     if (msg_cnt) msg_cnt--;
     else{ 
@@ -430,7 +453,7 @@ void loop() { unsigned long currentTime = millis();
       msg.buf[4] = lights_on;
       msg.buf[5] = drive_mode;
       msg.buf[6] = cadence_set;
-      msg.buf[7] = torque_set;
+      msg.buf[7] = 50 + throttle * 2;
       int err = CANbus.write(msg);
       //Serial.println(String(err));
       //}
@@ -440,7 +463,7 @@ void loop() { unsigned long currentTime = millis();
           msg.buf[idx] = 0;
       }
       msg.buf[0] = DRIVER_CONTROL;
-      msg.buf[1] = (analogRead(THROTTLE)-167)/7 ;
+      msg.buf[1] = throttle;
       msg.buf[2] = steering;
       msg.buf[3] = (!digitalRead(BRAKE_1) || !digitalRead(BRAKE_2));
       if ( analogRead(SIG_SWITCH) > 600)

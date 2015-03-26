@@ -6,7 +6,7 @@
 #define CUR_SEN_R A1
 #define CUR_SEN A0
 #define MODE 13
-#define CUR_REF A9
+#define CUR_REF A14
 #define ESF 12
 #define TACHO 11
 #define RST_OUT 10
@@ -29,8 +29,8 @@
 
 #define TICKS_PER_CYCLE 138
 #define CIRCUMFERENCE 2.07
-
 #define CURR_OFFSET 100
+
 #include <FlexCAN.h>
 #include <FrostEBike.h>
 #include <math.h>
@@ -202,7 +202,7 @@ void loop() { unsigned long currentTime = millis();
   else TRC_trig = 0;
   //}
   
-  /*//{ ABS control
+  //{ ABS control
   if (acc < -0.5)
     ABS_weight += 10;
   else
@@ -214,7 +214,7 @@ void loop() { unsigned long currentTime = millis();
   
   if (ABS_weight > 0) ABS_trig = 1;
   else ABS_trig = 0;
-  //}*/
+  //}
   
   // Serial debug output
   Serial.print("SPD: ");
@@ -252,15 +252,18 @@ void loop() { unsigned long currentTime = millis();
   curr_ref_fb = analogRead(CUR_REF_FB); // sense of current set value
   
   if ( brake ){
-    // digitalWrite(COAST, HIGH);
-    // brake_set = 50 + ABS_weight;
-    analogWrite(BRAKE, brake_set);
+    digitalWrite(COAST, HIGH);
+    brake_set = 50 + ABS_weight;
   }
+  /*
   else if (target_current > CURR_OFFSET + 1) {
-    // digitalWrite(COAST, HIGH); 
+    digitalWrite(COAST, HIGH); 
     curr_set += .25*(target_current - curr - TRC_weight); 
     if (curr_set < 25) curr_set = 25;
     brake_set = 256;
+    */
+  else if (target_current > CURR_OFFSET + 1) {
+    curr_set = 1.5*target_current;
   }  
   else{
     off_cnt++;
@@ -268,7 +271,7 @@ void loop() { unsigned long currentTime = millis();
   }
     
   if (off_cnt > 5){  
-    //digitalWrite(COAST, LOW); 
+    digitalWrite(COAST, LOW); 
     curr_set = 0;
     off_cnt = 0;
   }
@@ -301,10 +304,10 @@ void loop() { unsigned long currentTime = millis();
   if (curr_set > 100) curr_set = 100;
   analogWrite(CUR_REF, curr_set);
   //analogWrite(PWM_OUT,50);
-  /*
+  
   if (brake_set < 0) brake_set = 0;
   if (brake_set > 255) brake_set = 255;
-  analogWrite(BRAKE, brake_set);*/
+  analogWrite(BRAKE, brake_set);
   
   }
 }

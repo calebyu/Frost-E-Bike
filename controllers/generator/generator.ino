@@ -160,6 +160,8 @@ void loop(){
     if ( torque_set < 1 ) torque_set = 1;
     if ( rail.getValue() >= rail_pedal_max ) torque_set = 0;
   }
+  else if (drive_mode == THROTTLE_MODE) torque_set = 150;
+  
   analogWrite(GATES, (int)torque_set);
   Serial.print("Torque: ");
   Serial.println(torque_set,DEC);

@@ -289,6 +289,10 @@ void loop() { unsigned long currentTime = millis();
   Serial.println(brake_set, DEC);  
   Serial.print("Brake Sig: ");
   Serial.println(brake, DEC);  
+  Serial.print("FF1: ");
+  Serial.println(digitalRead(FF1), DEC);  
+  Serial.print("FF2: ");
+  Serial.println(digitalRead(FF2), DEC);  
   
   //Serial.print("CURR Set: ");
   //Serial.println(curr_set/256.*3.3, DEC);
@@ -298,6 +302,7 @@ void loop() { unsigned long currentTime = millis();
   
   if (curr_set < 0) curr_set = 0;
   if (curr_set > 100) curr_set = 100;
+  //digitalWrite(COAST, LOW); 
   analogWrite(CUR_REF, curr_set);
   //analogWrite(PWM_OUT,50);
   
